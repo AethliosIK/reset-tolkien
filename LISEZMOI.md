@@ -272,4 +272,4 @@ Ce projet est placé sous la [licence MIT](LICENSE).
 
 ## Credit
 
-- Illustration principale: prestation réalisé par [@valentin.froute](https://www.instagram.com/valentin.froute/).
+- Illustration principale: prestation réalisée par [@valentin.froute](https://www.instagram.com/valentin.froute/).
