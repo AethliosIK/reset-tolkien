@@ -269,3 +269,7 @@ Parmis les points qui seraient bien utiles:
 ## Licence
 
 Ce projet est placé sous la [licence MIT](LICENSE).
+
+## Credit
+
+- Illustration principale: prestation réalisé par [@valentin.froute](https://www.instagram.com/valentin.froute/).
