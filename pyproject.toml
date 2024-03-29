@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reset-tolkien"
+dynamic = ["version"]
+description = "Unsecure time-based secret exploitation and Sandwich attack implementation."
+requires-python = ">=3.10"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Tom CHAMBARETAUD", email = "tom.chambaretaud@protonmail.com"},
+]
+maintainers = [
+    {name = "Tom CHAMBARETAUD", email = "tom.chambaretaud@protonmail.com"},
+]
+keywords = ["security", "secret", "reset", "token", "tolkien"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Security",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dependencies = [
+    "dateparser == 1.1.8",
+    "hi-dateinfer == 0.4.6",
+    "packaging == 23.2",
+    "python-dateutil == 2.9.0.post0",
+    "pytz == 2024.1",
+    "PyYAML == 6.0.1",
+    "regex == 2023.12.25",
+    "shortuuid == 1.0.11",
+    "six == 1.16.0",
+    "typing_extensions == 4.10.0",
+    "tzlocal == 5.2",
+]
+
+[project.urls]
+Repository = "https://github.com/AethliosIK/resetTolkien"
+Issues = "https://github.com/AethliosIK/resetTolkien/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "resetTolkien.__version__"}
+
+[project.optional-dependencies]
+dev = [
+    "setuptools == 68.2.0",
+    "build == 1.0.3",
+    "twine == 4.0.2"
+]
+
+[project.scripts]
+reset-tolkien = "resetTolkien:main"

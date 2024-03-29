@@ -1,0 +1,44 @@
+int-default:
+  description: "Int timestamp"
+  level: 1
+  timestamp_type: int
+
+int-datetime:
+  description: "Int datetime"
+  level: 1
+  timestamp_type: int
+  formats:
+    - datetime
+
+int-datetimeRFC2822:
+  description: "Int datetimeRFC2822"
+  level: 1
+  timestamp_type: int
+  formats:
+    - datetimeRFC2822
+
+float-default:
+  description: "Float timestamp"
+  level: 2
+  timestamp_type: float
+
+float-uniqid:
+  description: "Uniqid timestamp"
+  level: 2
+  timestamp_type: float
+  formats:
+    - uniqid
+
+float-datetime:
+  description: "Float datetime"
+  level: 3
+  timestamp_type: float
+  formats:
+    - datetime
+
+float-datetimeRFC2822:
+  description: "Float datetimeRFC2822"
+  level: 3
+  timestamp_type: float
+  formats:
+    - datetimeRFC2822
