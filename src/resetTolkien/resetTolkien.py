@@ -15,7 +15,7 @@ from resetTolkien.utils import (
     TimestampHashFormat,
     import_from_yaml,
     possible_date_format_of_token,
-    CustomFloat
+    CustomFloat,
 )
 from resetTolkien.constants import (
     DEFAULT_TIMERANGE_FOR_INT_TIMESTAMP,
@@ -52,9 +52,7 @@ class ResetTolkien:
         self.formatter = Formatter()
         self.token = token
         self.decimal_length = (
-            decimal_length
-            if decimal_length
-            else DEFAULT_DECIMAL_LENGTH
+            decimal_length if decimal_length else DEFAULT_DECIMAL_LENGTH
         )
         self.int_range_limit = (
             int_range_limit * 2
@@ -220,9 +218,12 @@ class ResetTolkien:
 
         formats = [] if formats is None else formats
 
-        if self.verbosity >= 1:
-            numbers = self.formatter.getNumbers(token)
+        numbers = self.formatter.getNumbers(token)
+        if self.verbosity >= 1 and len(numbers) > 0:
             print(f"Integer value detected : {numbers}")
+        possibleTimestamp = self.formatter.searchTimestamps(numbers)
+        if len(possibleTimestamp) > 0:
+            print(f"Possible timestamp detected! {possibleTimestamp} from \"{token}\"")
 
         if self.formatter.isLiteralIntegerOrFloat(token):
             new_token, _ = self.detectOneEncoding(token, self.formatter.timestamp)
@@ -290,7 +291,9 @@ class ResetTolkien:
 
                 if token.lower() != token:
                     if self.verbosity >= 1:
-                        print(f"Hash with uppercase detected : {token} -> {token.lower()}")
+                        print(
+                            f"Hash with uppercase detected : {token} -> {token.lower()}"
+                        )
                     token = token.lower()
 
                 for timestampFormat in self.timestamp_hash_formats:
@@ -371,7 +374,7 @@ class ResetTolkien:
             if not range_limit:
                 range_limit = self.float_range_limit
 
-        for i in AlternativeGen(range_limit): # type: ignore
+        for i in AlternativeGen(range_limit):  # type: ignore
             timestamp = str(init + i)
             if not isinstance(init, int):
                 t = CustomFloat(init, self.decimal_length)
