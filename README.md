@@ -21,9 +21,11 @@ Install from [pip](https://pypi.org/project/reset-tolkien/):
 ▶ pip install reset-tolkien
 ```
 
-Install from Docker
+## Installation from Docker
 
 ```
+▶ git clone https://github.com/AethliosIK/reset-tolkien.git
+▶ cd reset-tolkien
 ▶ docker build -t reset-tolkien:latest . 
 ▶ docker run --rm -it --net=host -v "$PWD:/reset-tolkien/" reset-tolkien:latest -h
 ```
