@@ -21,6 +21,13 @@ Install from [pip](https://pypi.org/project/reset-tolkien/):
 ▶ pip install reset-tolkien
 ```
 
+Install from Docker
+
+```
+▶ docker build -t reset-tolkien:latest . 
+▶ docker run --rm -it --net=host -v "$PWD:/reset-tolkien/" reset-tolkien:latest -h
+```
+
 ## Usage
 
 To detect whether a token is time-based, simply use this command:
