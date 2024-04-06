@@ -51,8 +51,8 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/AethliosIK/resetTolkien"
-Issues = "https://github.com/AethliosIK/resetTolkien/issues"
+Repository = "https://github.com/AethliosIK/reset-tolkien"
+Issues = "https://github.com/AethliosIK/reset-tolkien/issues"
 
 [tool.setuptools.dynamic]
 version = {attr = "resetTolkien.__version__"}

@@ -277,6 +277,10 @@ Among the points that would be very useful:
 - **Management of other dynamic variables**: the tool detects formats and allows attacks based on the only variable supported: time. However, some formats can have several variables that evolve.
 - **Addition of new supported formats**: the tool only supports the time-based functions found during my research, but many other formats should still exist and could also be supported by the tool.
 
+## Changelog
+
+You could retrieve changes for each version from [CHANGELOG.md](CHANGELOG.md).
+
 ## Licensing
 
 This project is licensed under the [MIT license](LICENSE).
