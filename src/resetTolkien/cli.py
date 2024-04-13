@@ -5,6 +5,7 @@ import argparse
 import datetime
 
 from resetTolkien.resetTolkien import ResetTolkien
+from resetTolkien import version
 from resetTolkien.format import Formatter
 from resetTolkien.utils import SplitArgs, SERVER_DATE_FORMAT, server_date_example
 from resetTolkien.constants import (
@@ -87,6 +88,10 @@ parent_parser.add_argument(
 
 main_parser = argparse.ArgumentParser(description=PROG_DESCRIPTION)
 action_subparser = main_parser.add_subparsers(title="action", dest="action")
+
+main_parser.add_argument(
+    "-v", "--version", help="Print tool version", action="store_true"
+)
 
 # DETECT
 
@@ -253,6 +258,10 @@ sandwich_parser.add_argument(
 
 def main():
     args = main_parser.parse_args()
+
+    if args.version:
+        print(version)
+        exit()
 
     if not args.action:
         main_parser.print_help()
