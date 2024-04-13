@@ -38,6 +38,7 @@ from resetTolkien.constants import (
     TIME_REGEX,
     MONTH_REGEX,
     PARTIAL_FUNC_NAME_REGEX,
+    TIMESTAMP_STR_LENGTH,
 )
 from resetTolkien.hashes import Hashes
 
@@ -101,8 +102,31 @@ class Formatter:
     def getNumbers(self, token: str) -> list[str]:
         """Extracts numeric values from the string value."""
 
-        matches = re.findall(r"(\d+)", str(token))
+        matches = re.findall(r"([0-9]+\.?[0-9]*)", str(token))
         return [match for match in matches if self.isLiteralIntegerOrFloat(match)]
+
+    def searchTimestamps(self, numbers: list[str]) -> list[float]:
+        """Extracts nearby timestamp values from numerical values."""
+
+        matches: list[float] = []
+        for number in numbers:
+            if self.isLiteralIntegerOrFloat(number):
+                if "." in number:
+                    n = float(number)
+                elif len(number) > TIMESTAMP_STR_LENGTH:
+                    n = float(
+                        number[:TIMESTAMP_STR_LENGTH]
+                        + "."
+                        + number[TIMESTAMP_STR_LENGTH:]
+                    )
+                else:
+                    n = int(number)
+                try:
+                    from_microsecond_timestamp(n)
+                except ValueError:
+                    continue
+                matches.append(n)
+        return matches
 
     def isDatetime(self, token: str) -> bool:
         """Confirms that the value is datetime format."""

@@ -19,6 +19,15 @@ Installer depuis [pip](https://pypi.org/project/reset-tolkien/):
 ▶ pip install reset-tolkien
 ```
 
+## Installation depuis Docker
+
+```
+▶ git clone https://github.com/AethliosIK/reset-tolkien.git
+▶ cd reset-tolkien
+▶ docker build -t reset-tolkien:latest .
+▶ docker run --rm -it --net=host -v "$PWD:/reset-tolkien/" reset-tolkien:latest -h
+```
+
 ## Usage
 
 Pour savoir si un token est basé sur le temps, il suffit d'utiliser cette commande :
@@ -265,6 +274,9 @@ Parmis les points qui seraient bien utiles:
 - **Gestion des autres variables dynamiques**: l'outil détecte les formats et permet d'attaquer à partir de la seule variable pris en charge: le temps. Cependant, certains formats peuvent avoir plusieurs variables qui évoluent.
 - **Ajout de nouveaux formats pris en charge**: l'outil prend en charge uniquement les fonctions basées sur le temps découvertes lors de mes recherches, mais de nombreuses autres formats doivent encore exister et pourraient être aussi prises en charge par l'outil.
 
+## Changelog
+
+Vous pouvez retrouver les changements pour chacun des versions depuis [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 
