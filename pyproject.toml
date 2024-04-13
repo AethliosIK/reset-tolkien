@@ -51,8 +51,10 @@ dependencies = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/AethliosIK/reset-tolkien"
 Repository = "https://github.com/AethliosIK/reset-tolkien"
 Issues = "https://github.com/AethliosIK/reset-tolkien/issues"
+Changelog = "https://github.com/AethliosIK/reset-tolkien/blob/master/CHANGELOG.md"
 
 [tool.setuptools.dynamic]
 version = {attr = "resetTolkien.__version__"}
