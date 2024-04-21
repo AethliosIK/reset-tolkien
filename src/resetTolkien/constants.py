@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Aethlios <tom.chambaretaud@protonmail.com>
 
-from os import cpu_count
+from os import cpu_count, path
 
 OUTPUT_STRINGS = {
     "ROLEPLAY": {
@@ -40,7 +40,8 @@ DEFAULT_DEPTH_LEVEL = MAX_DEPTH_LEVEL
 MAX_VERBOSITY_LEVEL = 2
 DEFAULT_VERBOSITY_LEVEL = 0
 
-DEFAULT_CONFIG_FILE = "default.yml"
+DEFAULT_CONFIG_FILENAME = "default.yml"
+DEFAULT_CONFIG_FILE = path.join(path.dirname(path.realpath(__file__)), "config", DEFAULT_CONFIG_FILENAME)
 
 SERVER_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
 
