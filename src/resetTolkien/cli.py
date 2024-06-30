@@ -3,6 +3,7 @@
 
 import argparse
 import datetime
+from decimal import Decimal
 
 from resetTolkien.resetTolkien import ResetTolkien
 from resetTolkien import version
@@ -108,7 +109,7 @@ detect_parser.add_argument(
     default=DEFAULT_DEPTH_LEVEL,
 )
 detect_parser.add_argument(
-    "-t", "--timestamp", help="The timestamp of the reset request", type=float
+    "-t", "--timestamp", help="The timestamp of the reset request", type=Decimal
 )
 detect_parser.add_argument(
     "-d",
@@ -151,7 +152,7 @@ bruteforce_parser.add_argument(
     "-t",
     "--timestamp",
     help="The timestamp of the reset request with victim email",
-    type=float,
+    type=Decimal,
 )
 bruteforce_parser.add_argument(
     "-d",
@@ -203,13 +204,13 @@ sandwich_parser.add_argument(
     "-bt",
     "--begin-timestamp",
     help="The begin timestamp of the reset request with victim email",
-    type=float,
+    type=Decimal,
 )
 sandwich_parser.add_argument(
     "-et",
     "--end-timestamp",
     help="The end timestamp of the reset request with victim email",
-    type=float,
+    type=Decimal,
 )
 sandwich_parser.add_argument(
     "-bd",
@@ -275,7 +276,7 @@ def main():
     if args.action == "detect":
 
         if args.datetime:
-            args.timestamp = (
+            args.timestamp = Decimal.from_float(
                 datetime.datetime.strptime(args.datetime, args.datetime_format)
                 .replace(tzinfo=datetime.timezone.utc)
                 .timestamp()
@@ -326,7 +327,7 @@ def main():
                             formats=Formatter().export_formats(formats)
                         )
                     )
-                    if int(float(values[0])) == float(values[0]):
+                    if int(Decimal(values[0])) == Decimal(values[0]):
                         print(OUTPUT_STRINGS[output_version]["INT_TIMESTAMP"])
 
         if not success:
@@ -336,7 +337,7 @@ def main():
     if args.action == "bruteforce":
 
         if args.datetime:
-            args.timestamp = (
+            args.timestamp = Decimal.from_float(
                 datetime.datetime.strptime(args.datetime, args.datetime_format)
                 .replace(tzinfo=datetime.timezone.utc)
                 .timestamp()
@@ -382,14 +383,14 @@ def main():
     if args.action == "sandwich":
 
         if args.begin_datetime:
-            args.begin_timestamp = (
+            args.begin_timestamp = Decimal.from_float(
                 datetime.datetime.strptime(args.begin_datetime, args.datetime_format)
                 .replace(tzinfo=datetime.timezone.utc)
                 .timestamp()
             )
 
         if args.end_datetime:
-            args.end_timestamp = (
+            args.end_timestamp = Decimal.from_float(
                 datetime.datetime.strptime(args.end_datetime, args.datetime_format)
                 .replace(tzinfo=datetime.timezone.utc)
                 .timestamp()

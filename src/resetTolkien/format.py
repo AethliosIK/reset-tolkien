@@ -7,6 +7,7 @@ import concurrent.futures
 
 from functools import partial
 from typing import Callable, Any, Optional
+from decimal import Decimal, InvalidOperation
 
 import shortuuid
 import uuid
@@ -94,9 +95,9 @@ class Formatter:
         """Confirms that the value is numeric."""
 
         try:
-            float(token)
+            Decimal(token)
             return True
-        except (ValueError, OverflowError, TypeError):
+        except InvalidOperation:
             return False
 
     def getNumbers(self, token: str) -> list[str]:
@@ -105,16 +106,16 @@ class Formatter:
         matches = re.findall(r"([0-9]+\.?[0-9]*)", str(token))
         return [match for match in matches if self.isLiteralIntegerOrFloat(match)]
 
-    def searchTimestamps(self, numbers: list[str]) -> list[float]:
+    def searchTimestamps(self, numbers: list[str]) -> list[Decimal | int]:
         """Extracts nearby timestamp values from numerical values."""
 
-        matches: list[float] = []
+        matches: list[Decimal | int] = []
         for number in numbers:
             if self.isLiteralIntegerOrFloat(number):
                 if "." in number:
-                    n = float(number)
+                    n = Decimal(number)
                 elif len(number) > TIMESTAMP_STR_LENGTH:
-                    n = float(
+                    n = Decimal(
                         number[:TIMESTAMP_STR_LENGTH]
                         + "."
                         + number[TIMESTAMP_STR_LENGTH:]
@@ -212,7 +213,7 @@ class Formatter:
             timezone = kwargs["timezone"]
             date_format_of_token = kwargs["date_format_of_token"]
             return from_microsecond_timestamp(
-                float(token),
+                Decimal(token),
                 timezone=timezone,
                 date_format_of_token=date_format_of_token,
             )
@@ -226,7 +227,7 @@ class Formatter:
         if encode:
             timezone = kwargs["timezone"]
             date = from_microsecond_timestamp(
-                float(token),
+                Decimal(token),
                 timezone=timezone,
                 date_format_of_token="%a, %d %b %Y %H:%M:%S %Z",
             )
@@ -245,7 +246,7 @@ class Formatter:
 
         if encode:
             return to_microsecond_timestamp(token)
-        return from_microsecond_timestamp(float(token))
+        return from_microsecond_timestamp(Decimal(token))
 
     def mongodb_objectid(
         self, token: str, encode: Optional[bool] = True, **kwargs: Any
@@ -301,14 +302,14 @@ class Formatter:
         """Converts from a uniqid value to a timestamp or vice versa"""
 
         if encode:
-            return uniqid(float(token))
+            return uniqid(Decimal(token))
         return deuniqid(token)
 
     def hexint(self, token: str, encode: Optional[bool] = True, **kwargs: Any) -> str:
         """Converts from a int-hex value to a timestamp or vice versa"""
 
         if encode:
-            return hex(int(float(token))).replace("0x", "")
+            return hex(int(Decimal(token))).replace("0x", "")
         return str(int(token, 16))
 
     def hexstr(self, token: str, encode: Optional[bool] = True, **kwargs: Any) -> str:

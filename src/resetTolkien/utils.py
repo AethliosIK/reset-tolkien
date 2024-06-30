@@ -13,6 +13,7 @@ from typing import Generator, Callable, Any, Optional, TypeAlias, Protocol
 from typing_extensions import Self
 from functools import partial
 from urllib.parse import unquote_plus
+from decimal import Decimal
 
 import dateparser  # type: ignore
 import hidateinfer  # type: ignore
@@ -34,37 +35,6 @@ from resetTolkien.constants import (
 
 class NotAHash(Exception):
     pass
-
-
-# Custom Float
-
-
-def remove_last_zero(s: str) -> str:
-    """Removes the 0 at the end of a decimal value"""
-
-    if len(s) == 0:
-        return "0"
-    if s[-1] == "0":
-        return remove_last_zero(s[:-1])
-    return s
-
-
-class CustomFloat:
-    """Non-optimized but useful class for manipulating floats
-    without rounding problems on decimal values."""
-
-    def __init__(self, value: float, decimal_length: int):
-        self.decimal_length = decimal_length
-        self.value = round(value * 10**self.decimal_length)
-
-    def integer(self):
-        return self.value // 10**self.decimal_length
-
-    def decimal(self):
-        return self.value - self.integer() * 10**self.decimal_length
-
-    def __repr__(self):
-        return f"{self.integer()}.{remove_last_zero(str(self.decimal()))}"
 
 
 # GENERATOR
@@ -122,15 +92,14 @@ class SplitArgs(argparse.Action):
 
     delimiter = ","
 
-    def __call__(self, parser, namespace, values, option_string=None):  # type: ignore
+    def __call__(self, parser, namespace, values, option_string=None) -> None:  # type: ignore
         setattr(namespace, self.dest, [value.strip() for value in values.split(self.delimiter)])  # type: ignore
 
 
 class EncodingType(Protocol):
     """Type for Encoding functions"""
 
-    def __call__(self, token: str, encode: bool = True, **kwargs: Any) -> str:
-        ...
+    def __call__(self, token: str, encode: bool = True, **kwargs: Any) -> str: ...
 
     def __name__(self) -> str:
         return self.__call__.__name__
@@ -146,8 +115,7 @@ class HashingType(Protocol):
         encode: Optional[bool] = True,
         multithreading: Optional[int] = None,
         **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        ...
+    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]: ...
 
     def __name__(self) -> str:
         return self.__call__.__name__
@@ -159,27 +127,19 @@ HashIdentifierType: TypeAlias = Callable[[str], Optional[HashingType]]
 
 # Function
 
+
 # Credit to https://github.com/intruder-io/guidtool
-def uuid1(node: int, clock_seq: int, timestamp: float):
+def uuid1(node: int, clock_seq: int, timestamp: Decimal) -> uuid.UUID:
     """Generates a UUID from a host ID, sequence number, and the current time.
     If 'node' is not given, getnode() is used to obtain the hardware
     address.  If 'clock_seq' is given, it is used as the sequence number;
     otherwise a random 14-bit sequence number is chosen."""
 
-    if float(timestamp) == int(float(timestamp)):
-        timestamp = int(timestamp)
+    t = int(timestamp * 10**UUID_DECIMAL_LENGTH) + 0x01B21DD213814000
 
-    if type(timestamp) == int:
-        timestamp = timestamp * 10**UUID_DECIMAL_LENGTH
-    else:
-        splitted = str(timestamp).split(".")
-        splitted[1] += "0" * (UUID_DECIMAL_LENGTH - len(splitted[1]))
-        timestamp = int("".join(splitted))
-
-    timestamp = timestamp + 0x01B21DD213814000
-    time_low = timestamp & 0xFFFFFFFF
-    time_mid = (timestamp >> 32) & 0xFFFF
-    time_hi_version = (timestamp >> 48) & 0x0FFF
+    time_low = t & 0xFFFFFFFF
+    time_mid = (t >> 32) & 0xFFFF
+    time_hi_version = (t >> 48) & 0x0FFF
     clock_seq_low = clock_seq & 0xFF
     clock_seq_hi_variant = (clock_seq >> 8) & 0x3F
     return uuid.UUID(
@@ -195,7 +155,7 @@ def uuid1(node: int, clock_seq: int, timestamp: float):
     )
 
 
-def to_uuidv1(timestamp: str, init_token: str):
+def to_uuidv1(timestamp: str, init_token: str) -> str:
     """Converts a timestamp to a UUID via a provided UUID"""
 
     try:
@@ -204,10 +164,10 @@ def to_uuidv1(timestamp: str, init_token: str):
         raise ValueError("Not a UUID")
     if u.version != 1:
         raise ValueError("Not a UUIDv1")
-    return str(uuid1(u.node, u.clock_seq, float(timestamp)))
+    return str(uuid1(u.node, u.clock_seq, Decimal(timestamp)))
 
 
-def from_uuidv1(token: str):
+def from_uuidv1(token: str) -> str:
     """Extracts a timestamp from an UUID"""
 
     try:
@@ -216,7 +176,7 @@ def from_uuidv1(token: str):
         raise ValueError("Not a UUID")
     if u.version != 1:
         raise ValueError("Not a UUIDv1")
-    return str((u.time - 122192928000000000) / 10000000)
+    return str((u.time - 0x01B21DD213814000) / 10000000)
 
 
 class MongoDBObjectID:
@@ -228,8 +188,8 @@ class MongoDBObjectID:
         self.process = int(s[14:18], 16)
         self.counter = int(s[18:24], 16)
 
-    def set_timestamp(self, timestamp: str):
-        self.timestamp = int(timestamp)
+    def set_timestamp(self, timestamp: int) -> None:
+        self.timestamp = timestamp
 
     def __str__(self) -> str:
         return "%08x%06x%02x%06x" % (
@@ -240,16 +200,16 @@ class MongoDBObjectID:
         )
 
 
-def to_mongodb_objectid(timestamp: str, init_token: str):
+def to_mongodb_objectid(timestamp: str, init_token: str) -> str:
     try:
         u = MongoDBObjectID(init_token)
     except (ValueError, AttributeError):
         raise ValueError("Not a MongoDBObjectID")
-    u.set_timestamp(timestamp)
+    u.set_timestamp(int(timestamp))
     return str(u)
 
 
-def from_mongodb_objectid(token: str):
+def from_mongodb_objectid(token: str) -> str:
     try:
         u = MongoDBObjectID(token)
     except (ValueError, AttributeError):
@@ -258,7 +218,7 @@ def from_mongodb_objectid(token: str):
 
 
 # Credit to https://github.com/Riamse/python-uniqid
-def uniqid(timestamp: float, prefix: str = "", more_entropy: bool = False):
+def uniqid(timestamp: Decimal, prefix: str = "", more_entropy: bool = False) -> str:
     """uniqid([prefix=''[, more_entropy=False]]) -> str
     Gets a prefixed unique identifier based on the current
     time in microseconds.
@@ -321,15 +281,15 @@ def urldecode(value: str) -> str:
 
 
 def from_microsecond_timestamp(
-    token: float, timezone: int = 0, date_format_of_token: str | None = None
+    token: Decimal | int, timezone: int = 0, date_format_of_token: str | None = None
 ) -> str:
     """Converts a timestamp to a standard string of datetime or formated by date_format_of_token"""
 
     timezone_delta = datetime.timedelta(hours=timezone)
     d = (
-        datetime.datetime.utcfromtimestamp(token).replace(
-            tzinfo=datetime.timezone(timezone_delta)
-        )
+        datetime.datetime.fromtimestamp(
+            float(str(token)), datetime.timezone.utc
+        ).replace(tzinfo=datetime.timezone(timezone_delta))
         + timezone_delta
     )
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=timezone)))
@@ -428,7 +388,7 @@ class TimestampHashFormat:
         self,
         description: str,
         hashes_by_type: dict[str, HashingType],
-        timestamp_type_func: Callable[[str], Any],
+        timestamp_type_func: Callable[[str], Decimal | int],
         range_limit: int,
         level: int = MIN_DEPTH_LEVEL,
         formats_output: Optional[list[FormatType]] = None,
@@ -462,33 +422,35 @@ def import_from_yaml(
         hashFormats = safe_load(f)
         for f in hashFormats:
             hashFormat = hashFormats[f]
-            level = hashFormat["level"] if "level" in hashFormat else MIN_DEPTH_LEVEL
+            level = (
+                int(hashFormat["level"]) if "level" in hashFormat else MIN_DEPTH_LEVEL
+            )
             if level > MAX_DEPTH_LEVEL:
                 raise ValueError(f"Please set a value < {MAX_DEPTH_LEVEL}")
             if selected_level < level:
                 continue
             description = (
-                hashFormat["description"]
+                str(hashFormat["description"])
                 if "description" in hashFormat
                 else "Not described"
             )
             if hashFormat["timestamp_type"] == "int":
                 hashes_by_type = intHashing.copy()
-                timestamp_type_func: Callable[[str], float] = lambda timestamp: int(
-                    float(timestamp)
+                timestamp_type_func: Callable[[str], Decimal | int] = (
+                    lambda timestamp: int(Decimal(timestamp))
                 )
                 range_limit = int_range_limit
             elif hashFormat["timestamp_type"] == "float":
                 hashes_by_type = floatHashing.copy()
-                timestamp_type_func: Callable[[str], float] = lambda timestamp: float(
-                    timestamp
+                timestamp_type_func: Callable[[str], Decimal | int] = (
+                    lambda timestamp: Decimal(timestamp)
                 )
                 range_limit = float_range_limit
             else:
                 raise ValueError('Please set "int" or "float" types.')
             formats: list[FormatType] = []
             if "formats" in hashFormat:
-                for f in hashFormat["formats"]:
+                for f in [str(f) for f in hashFormat["formats"]]:
                     if not f in allEncoding.keys():
                         raise ValueError(
                             f"Please set a valid format : {allEncoding.keys()}."

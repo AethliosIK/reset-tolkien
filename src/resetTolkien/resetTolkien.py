@@ -3,7 +3,7 @@
 
 from typing import Callable, Any, Optional
 from functools import partial
-from decimal import Decimal
+from decimal import Decimal, getcontext
 from math import floor
 
 from resetTolkien.format import Formatter, FormatType, EncodingType, HashingType
@@ -15,7 +15,6 @@ from resetTolkien.utils import (
     TimestampHashFormat,
     import_from_yaml,
     possible_date_format_of_token,
-    CustomFloat,
 )
 from resetTolkien.constants import (
     DEFAULT_TIMERANGE_FOR_INT_TIMESTAMP,
@@ -24,6 +23,7 @@ from resetTolkien.constants import (
     DEFAULT_THREAD_NUMBER,
     DEFAULT_CONFIG_FILE,
     DEFAULT_DECIMAL_LENGTH,
+    TIMESTAMP_STR_LENGTH,
 )
 
 
@@ -54,6 +54,7 @@ class ResetTolkien:
         self.decimal_length = (
             decimal_length if decimal_length else DEFAULT_DECIMAL_LENGTH
         )
+        getcontext().prec = TIMESTAMP_STR_LENGTH + self.decimal_length
         self.int_range_limit = (
             int_range_limit * 2
             if int_range_limit
@@ -160,9 +161,9 @@ class ResetTolkien:
         hashes_by_type: dict[str, HashingType],
         formats: list[FormatType],
         formats_output: list[FormatType],
-        timestamp: float,
+        timestamp: Decimal | int,
         token: str,
-        timestamp_type_func: Callable[[str], Any],
+        timestamp_type_func: Callable[[str], Decimal | int],
         range_limit: int,
         multithreading: Optional[int] = None,
     ) -> Optional[
@@ -211,7 +212,7 @@ class ResetTolkien:
         token: str,
         multithreading: int,
         formats: Optional[list[FormatType]] = None,
-        timestamp: Optional[float] = None,
+        timestamp: Optional[Decimal | int] = None,
     ) -> list[tuple[tuple[str, Optional[str], Optional[str]], list[FormatType], bool]]:
         """Recursive function - Determines a function
         corresponding to the format of an input token."""
@@ -223,7 +224,9 @@ class ResetTolkien:
             print(f"Integer value detected : {numbers}")
         possibleTimestamp = self.formatter.searchTimestamps(numbers)
         if len(possibleTimestamp) > 0:
-            print(f"Possible timestamp detected! {possibleTimestamp} from \"{token}\"")
+            print(
+                f'Possible timestamp detected! {[str(t) for t in possibleTimestamp]} from "{token}"'
+            )
 
         if self.formatter.isLiteralIntegerOrFloat(token):
             new_token, _ = self.detectOneEncoding(token, self.formatter.timestamp)
@@ -321,7 +324,7 @@ class ResetTolkien:
 
     def detectFormat(
         self,
-        timestamp: Optional[float] = None,
+        timestamp: Optional[Decimal | int] = None,
         nb_threads: int = DEFAULT_THREAD_NUMBER,
     ) -> Optional[
         list[tuple[tuple[str, Optional[str], Optional[str]], list[FormatType], bool]]
@@ -356,7 +359,7 @@ class ResetTolkien:
 
     def generate_possible_token(
         self,
-        init: float,
+        init: Decimal | int,
         range_limit: int | None = None,
         formats: list[FormatType] | None = None,
         prefix: str | None = None,
@@ -369,17 +372,17 @@ class ResetTolkien:
 
         if isinstance(init, int):
             if not range_limit:
-                range_limit = self.int_range_limit
+                range_limit = self.int_range_limit + 1
         else:
             if not range_limit:
-                range_limit = self.float_range_limit
+                range_limit = self.float_range_limit + 1
 
         for i in AlternativeGen(range_limit):  # type: ignore
             timestamp = str(init + i)
-            if not isinstance(init, int):
-                t = CustomFloat(init, self.decimal_length)
-                t.value = t.value + i
-                timestamp = str(t)
+            if isinstance(init, Decimal):
+                timestamp = str(
+                    Decimal(init + Decimal(i / 10**self.decimal_length)).normalize()
+                )
             if prefix:
                 timestamp = f"{prefix}{timestamp}"
             if suffix:
@@ -389,8 +392,8 @@ class ResetTolkien:
 
     def generate_bounded_possible_token(
         self,
-        begin: float | int,
-        end: float | int,
+        begin: Decimal | int,
+        end: Decimal | int,
         formats: list[FormatType] | None = None,
         prefix: str | None = None,
         suffix: str | None = None,
@@ -408,18 +411,11 @@ class ResetTolkien:
                 begin, prefix=prefix, suffix=suffix, range_limit=limit, formats=formats
             )
         else:
-            limit = (
-                int(
-                    round(float(Decimal(end) - Decimal(begin)), self.decimal_length)
-                    * 10**self.decimal_length
-                )
-                + 1
-            )
+            limit = int(Decimal(end - begin) * 10**self.decimal_length) + 1
             begin = round(
                 (
-                    float(
-                        Decimal(end)
-                        - Decimal(floor((limit - 1) / 2) / 10**self.decimal_length)
+                    Decimal(
+                        end - Decimal(floor((limit - 1) / 2) / 10**self.decimal_length)
                     )
                 ),
                 self.decimal_length,
