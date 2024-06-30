@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2] - 2024-06-30
+
+### Added
+
+- #4: Add argument `--version` in cli to print current version.
+
+### Fixed
+
+- #9: Bug with uniqid if the timestamp contains a zero as last decimal digit.
+- #8: Bug with nanosecond in timestamp.
+- #7: Error when running the example code provided in the blog post with docker environment.
+
 ## [1.1.1] - 2024-04-21
 
 ### Fixed
