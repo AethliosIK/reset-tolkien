@@ -76,13 +76,37 @@ L'outil gère également les fonctions de hachage les plus populaires:
 
 ## Help
 
+```bash
+usage: reset-tolkien [-h] [-v] {detect,bruteforce,sandwich} ...
+
+Reset Tolkien can be used to find out whether a provided token is based on a
+timestamp, from a timestamp corresponding to the period in which it was
+generated.
+
+options:
+  -h, --help            show this help message and exit
+  -v, --version         Print tool version
+
+action:
+  {detect,bruteforce,sandwich}
+    detect              Detect the format of reset token
+    bruteforce          Attack the reset token
+    sandwich            Attack the reset token with sandwich method
+```
+
 Les différentes fonctionnalité de l'outil sont les suivantes:
 - `detect`: permet de détecter si un token fournit est basé sur un date, fournit ou non:
 
 ```bash
-usage: reset-tolkien detect [-h] [-r] [-v {0,1,2}] [-c CONFIG] [--threads THREADS] [--date-format-of-token DATE_FORMAT_OF_TOKEN] [--only-int-timestamp] [--decimal-length DECIMAL_LENGTH]
-                     [--int-timestamp-range INT_TIMESTAMP_RANGE] [--float-timestamp-range FLOAT_TIMESTAMP_RANGE] [--timezone TIMEZONE] [-l {1,2,3}] [-t TIMESTAMP] [-d DATETIME]
-                     [--datetime-format DATETIME_FORMAT] [--prefixes PREFIXES] [--suffixes SUFFIXES] [--hashes HASHES]
+usage: reset-tolkien detect [-h] [-r] [-v {0,1,2}] [-c CONFIG] [--threads THREADS]
+                     [--date-format-of-token DATE_FORMAT_OF_TOKEN]
+                     [--only-int-timestamp] [--decimal-length DECIMAL_LENGTH]
+                     [--int-timestamp-range INT_TIMESTAMP_RANGE]
+                     [--float-timestamp-range FLOAT_TIMESTAMP_RANGE]
+                     [--timezone TIMEZONE] [-l {1,2,3}] [-t TIMESTAMP]
+                     [-d DATETIME] [--datetime-format DATETIME_FORMAT]
+                     [--prefixes PREFIXES] [--suffixes SUFFIXES]
+                     [--hashes HASHES]
                      token
 
 positional arguments:
@@ -94,18 +118,23 @@ options:
   -v {0,1,2}, --verbosity {0,1,2}
                         Verbosity level (default: 0)
   -c CONFIG, --config CONFIG
-                        Config file to set TimestampHashFormat (default: default.yml)
-  --threads THREADS     Define the number of parallelized tasks for the decryption attack on the hash. (default: 8)
+                        Config file to set TimestampHashFormat (default: resetTolkien/config/default.yml)
+  --threads THREADS     Define the number of parallelized tasks for the
+                        decryption attack on the hash. (default: 8)
   --date-format-of-token DATE_FORMAT_OF_TOKEN
-                        Date format for the token - please set it if you have found a date as input.
+                        Date format for the token - please set it if you have
+                        found a date as input.
   --only-int-timestamp  Only use integer timestamp. (default: False)
   --decimal-length DECIMAL_LENGTH
                         Length of the float timestamp (default: 7)
   --int-timestamp-range INT_TIMESTAMP_RANGE
-                        Time range over which the int timestamp will be tested before and after the input value (default: 60s)
+                        Time range over which the int timestamp will be tested
+                        before and after the input value (default: 60s)
   --float-timestamp-range FLOAT_TIMESTAMP_RANGE
-                        Time range over which the float timestamp will be tested before and after the input value (default: 2s)
-  --timezone TIMEZONE   Timezone of the application for datetime value (default: 0)
+                        Time range over which the float timestamp will be
+                        tested before and after the input value (default: 2s)
+  --timezone TIMEZONE   Timezone of the application for datetime value
+                        (default: 0)
   -l {1,2,3}, --level {1,2,3}
                         Level of search depth (default: 3)
   -t TIMESTAMP, --timestamp TIMESTAMP
@@ -113,18 +142,30 @@ options:
   -d DATETIME, --datetime DATETIME
                         The datetime of the reset request
   --datetime-format DATETIME_FORMAT
-                        The input datetime format (default: server date format like "Tue, 12 Mar 2024 16:24:05 UTC")
-  --prefixes PREFIXES   List of possible values for the prefix concatenated with the timestamp. Format: prefix1,prefix2
-  --suffixes SUFFIXES   List of possible values for the suffix concatenated with the timestamp. Format: suffix1,suffix2
-  --hashes HASHES       List of possible hashes to try to detect the format. Format: suffix1,suffix2 (default: all identified hash)
+                        The input datetime format (default: server date format
+                        like "Sun, 30 Jun 2024 01:38:41 UTC")
+  --prefixes PREFIXES   List of possible values for the prefix concatenated
+                        with the timestamp. Format: prefix1,prefix2
+  --suffixes SUFFIXES   List of possible values for the suffix concatenated
+                        with the timestamp. Format: suffix1,suffix2
+  --hashes HASHES       List of possible hashes to try to detect the format.
+                        Format: suffix1,suffix2 (default: all identified hash)
 ```
 
 - `bruteforce`: permet de fournir une liste de tokens possibles à partir d'un format de token et d'une fenètre temporelle défini arbitrairement:
 
 ```bash
-usage: reset-tolkien bruteforce [-h] [-r] [-v {0,1,2}] [-c CONFIG] [--threads THREADS] [--date-format-of-token DATE_FORMAT_OF_TOKEN] [--only-int-timestamp] [--decimal-length DECIMAL_LENGTH]
-                         [--int-timestamp-range INT_TIMESTAMP_RANGE] [--float-timestamp-range FLOAT_TIMESTAMP_RANGE] [--timezone TIMEZONE] [-t TIMESTAMP] [-d DATETIME]
-                         [--datetime-format DATETIME_FORMAT] [--token-format TOKEN_FORMAT] [--prefix PREFIX] [--suffix SUFFIX] [-o OUTPUT] [--with-timestamp]
+usage: reset-tolkien bruteforce [-h] [-r] [-v {0,1,2}] [-c CONFIG]
+                         [--threads THREADS]
+                         [--date-format-of-token DATE_FORMAT_OF_TOKEN]
+                         [--only-int-timestamp]
+                         [--decimal-length DECIMAL_LENGTH]
+                         [--int-timestamp-range INT_TIMESTAMP_RANGE]
+                         [--float-timestamp-range FLOAT_TIMESTAMP_RANGE]
+                         [--timezone TIMEZONE] [-t TIMESTAMP] [-d DATETIME]
+                         [--datetime-format DATETIME_FORMAT]
+                         [--token-format TOKEN_FORMAT] [--prefix PREFIX]
+                         [--suffix SUFFIX] [-o OUTPUT] [--with-timestamp]
                          token
 
 positional arguments:
@@ -136,26 +177,33 @@ options:
   -v {0,1,2}, --verbosity {0,1,2}
                         Verbosity level (default: 0)
   -c CONFIG, --config CONFIG
-                        Config file to set TimestampHashFormat (default: default.yml)
-  --threads THREADS     Define the number of parallelized tasks for the decryption attack on the hash. (default: 8)
+                        Config file to set TimestampHashFormat (default: resetTolkien/config/default.yml)
+  --threads THREADS     Define the number of parallelized tasks for the
+                        decryption attack on the hash. (default: 8)
   --date-format-of-token DATE_FORMAT_OF_TOKEN
-                        Date format for the token - please set it if you have found a date as input.
+                        Date format for the token - please set it if you have
+                        found a date as input.
   --only-int-timestamp  Only use integer timestamp. (default: False)
   --decimal-length DECIMAL_LENGTH
                         Length of the float timestamp (default: 7)
   --int-timestamp-range INT_TIMESTAMP_RANGE
-                        Time range over which the int timestamp will be tested before and after the input value (default: 60s)
+                        Time range over which the int timestamp will be tested
+                        before and after the input value (default: 60s)
   --float-timestamp-range FLOAT_TIMESTAMP_RANGE
-                        Time range over which the float timestamp will be tested before and after the input value (default: 2s)
-  --timezone TIMEZONE   Timezone of the application for datetime value (default: 0)
+                        Time range over which the float timestamp will be
+                        tested before and after the input value (default: 2s)
+  --timezone TIMEZONE   Timezone of the application for datetime value
+                        (default: 0)
   -t TIMESTAMP, --timestamp TIMESTAMP
                         The timestamp of the reset request with victim email
   -d DATETIME, --datetime DATETIME
                         The datetime of the reset request with victim email
   --datetime-format DATETIME_FORMAT
-                        The input datetime format (default: server date format like "Tue, 12 Mar 2024 16:25:07 UTC")
+                        The input datetime format (default: server date format
+                        like "Sun, 30 Jun 2024 01:40:15 UTC")
   --token-format TOKEN_FORMAT
-                        The token encoding/hashing format - Format: encoding1,encoding2
+                        The token encoding/hashing format - Format:
+                        encoding1,encoding2
   --prefix PREFIX       The prefix value concatenated with the timestamp.
   --suffix SUFFIX       The suffix value concatenated with the timestamp.
   -o OUTPUT, --output OUTPUT
@@ -166,10 +214,17 @@ options:
 - `sandwich`: permet de fournir une liste de tokens possibles à partir d'un format de token et d'une fenètre temporelle borné par deux dates:
 
 ```bash
-usage: reset-tolkien sandwich [-h] [-r] [-v {0,1,2}] [-c CONFIG] [--threads THREADS] [--date-format-of-token DATE_FORMAT_OF_TOKEN] [--only-int-timestamp] [--decimal-length DECIMAL_LENGTH]
-                       [--int-timestamp-range INT_TIMESTAMP_RANGE] [--float-timestamp-range FLOAT_TIMESTAMP_RANGE] [--timezone TIMEZONE] [-bt BEGIN_TIMESTAMP] [-et END_TIMESTAMP]
-                       [-bd BEGIN_DATETIME] [-ed END_DATETIME] [--datetime-format DATETIME_FORMAT] [--token-format TOKEN_FORMAT] [--prefix PREFIX] [--suffix SUFFIX] [-o OUTPUT]
-                       [--with-timestamp]
+usage: reset-tolkien sandwich [-h] [-r] [-v {0,1,2}] [-c CONFIG] [--threads THREADS]
+                       [--date-format-of-token DATE_FORMAT_OF_TOKEN]
+                       [--only-int-timestamp]
+                       [--decimal-length DECIMAL_LENGTH]
+                       [--int-timestamp-range INT_TIMESTAMP_RANGE]
+                       [--float-timestamp-range FLOAT_TIMESTAMP_RANGE]
+                       [--timezone TIMEZONE] [-bt BEGIN_TIMESTAMP]
+                       [-et END_TIMESTAMP] [-bd BEGIN_DATETIME]
+                       [-ed END_DATETIME] [--datetime-format DATETIME_FORMAT]
+                       [--token-format TOKEN_FORMAT] [--prefix PREFIX]
+                       [--suffix SUFFIX] [-o OUTPUT] [--with-timestamp]
                        token
 
 positional arguments:
@@ -181,30 +236,41 @@ options:
   -v {0,1,2}, --verbosity {0,1,2}
                         Verbosity level (default: 0)
   -c CONFIG, --config CONFIG
-                        Config file to set TimestampHashFormat (default: default.yml)
-  --threads THREADS     Define the number of parallelized tasks for the decryption attack on the hash. (default: 8)
+                        Config file to set TimestampHashFormat (default: resetTolkien/config/default.yml)
+  --threads THREADS     Define the number of parallelized tasks for the
+                        decryption attack on the hash. (default: 8)
   --date-format-of-token DATE_FORMAT_OF_TOKEN
-                        Date format for the token - please set it if you have found a date as input.
+                        Date format for the token - please set it if you have
+                        found a date as input.
   --only-int-timestamp  Only use integer timestamp. (default: False)
   --decimal-length DECIMAL_LENGTH
                         Length of the float timestamp (default: 7)
   --int-timestamp-range INT_TIMESTAMP_RANGE
-                        Time range over which the int timestamp will be tested before and after the input value (default: 60s)
+                        Time range over which the int timestamp will be tested
+                        before and after the input value (default: 60s)
   --float-timestamp-range FLOAT_TIMESTAMP_RANGE
-                        Time range over which the float timestamp will be tested before and after the input value (default: 2s)
-  --timezone TIMEZONE   Timezone of the application for datetime value (default: 0)
+                        Time range over which the float timestamp will be
+                        tested before and after the input value (default: 2s)
+  --timezone TIMEZONE   Timezone of the application for datetime value
+                        (default: 0)
   -bt BEGIN_TIMESTAMP, --begin-timestamp BEGIN_TIMESTAMP
-                        The begin timestamp of the reset request with victim email
+                        The begin timestamp of the reset request with victim
+                        email
   -et END_TIMESTAMP, --end-timestamp END_TIMESTAMP
-                        The end timestamp of the reset request with victim email
+                        The end timestamp of the reset request with victim
+                        email
   -bd BEGIN_DATETIME, --begin-datetime BEGIN_DATETIME
-                        The begin datetime of the reset request with victim email
+                        The begin datetime of the reset request with victim
+                        email
   -ed END_DATETIME, --end-datetime END_DATETIME
-                        The end datetime of the reset request with victim email
+                        The end datetime of the reset request with victim
+                        email
   --datetime-format DATETIME_FORMAT
-                        The input datetime format (default: server date format like "Tue, 12 Mar 2024 16:25:55 UTC")
+                        The input datetime format (default: server date format
+                        like "Sun, 30 Jun 2024 01:40:54 UTC")
   --token-format TOKEN_FORMAT
-                        The token encoding/hashing format - Format: encoding1,encoding2
+                        The token encoding/hashing format - Format:
+                        encoding1,encoding2
   --prefix PREFIX       The prefix value concatenated with the timestamp.
   --suffix SUFFIX       The suffix value concatenated with the timestamp.
   -o OUTPUT, --output OUTPUT

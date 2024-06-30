@@ -25,8 +25,8 @@ PROG_DESCRIPTION = "Reset Tolkien can be used to find out whether a provided tok
 NB_DAYS_LIMIT = 365 * 1
 TIMESTAMP_HEX_LENGTH = 8
 TIMESTAMP_STR_LENGTH = 10
-DEFAULT_DECIMAL_LENGTH = 7
 UUID_DECIMAL_LENGTH = 7
+DEFAULT_DECIMAL_LENGTH = UUID_DECIMAL_LENGTH
 DEFAULT_TIMERANGE_FOR_INT_TIMESTAMP = 60
 DEFAULT_TIMERANGE_FOR_FLOAT_TIMESTAMP = 2
 MIN_LENGTH_OF_FLOATING_TIMESTAMP_HEX = 8
@@ -45,7 +45,7 @@ DEFAULT_CONFIG_FILE = path.join(path.dirname(path.realpath(__file__)), "config",
 
 SERVER_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
 
-PARTIAL_FUNC_NAME_REGEX = r"functools\.partial\(<bound method Formatter\.([a-zA-Z_]*) of <src\.format\.Formatter object at [0-9a-fx]*>>, (.*)\)"
+PARTIAL_FUNC_NAME_REGEX = r"functools\.partial\(<bound method Formatter\.([a-zA-Z_]*) of <.*\.format\.Formatter object at [0-9a-fx]*>>, (.*)\)"
 
 # 12/12/2023 or 5/5/2023 or 12/12/23 or 2023/12/12
 DATE_SLASH_REGEX = r"[0-9]{1,4}\/[0-9]{1,2}\/[0-9]{1,4}"

@@ -7,12 +7,15 @@ from binascii import hexlify
 import hashlib
 import uuid
 import time
+from decimal import Decimal, getcontext
 
 from resetTolkien.resetTolkien import ResetTolkien, FormatType
 from resetTolkien.utils import uuid1, uniqid, urlencode, MongoDBObjectID
-from resetTolkien.constants import UUID_DECIMAL_LENGTH
+from resetTolkien.constants import TIMESTAMP_STR_LENGTH, UUID_DECIMAL_LENGTH
 
 import sys
+
+getcontext().prec = TIMESTAMP_STR_LENGTH + UUID_DECIMAL_LENGTH
 
 verbosity = 0
 if len(sys.argv) == 3 and sys.argv[1] == "-v":
@@ -20,7 +23,7 @@ if len(sys.argv) == 3 and sys.argv[1] == "-v":
 
 threads = 8
 
-TIMEDELTA_WITH_FLOAT_VALUE = 1.1
+TIMEDELTA_WITH_FLOAT_VALUE = Decimal(1.1)
 TIMEDELTA_WITH_INT_VALUE = 30
 
 OK = "\033[92mOK\033[0m"
@@ -28,7 +31,7 @@ NOK = "\033[91mNOK\033[0m"
 
 
 def benchmark_multithread() -> None:
-    timestamp_input = datetime.datetime.now().timestamp()
+    timestamp_input = getFloatTimestamp()
     token = hashlib.md5("value".encode()).hexdigest()
     print("native")
     tolkien = ResetTolkien(
@@ -66,7 +69,9 @@ def _check(
                 result = tolkien.encode(value, formats=formats)
                 if result != init_token and len(results) > 0:
                     print(formats)
-                    print(f"result : {result} - expected result : {init_token} - value : {value}")
+                    print(
+                        f"result : {result} - expected result : {init_token} - value : {value}"
+                    )
                 return (
                     result == init_token,
                     [formats for _, formats, _ in results if isBasedOnTimestamp],
@@ -77,16 +82,14 @@ def _check(
 
 
 def check(
-    value: str | float | int,
+    value: str | Decimal | int,
     init_token: str,
     description: str = "Generic test",
-    decimal_length: int = 6,
-    timestamp_input: float | None = None,
+    timestamp_input: Decimal | int | None = None,
     prefixes: list[str] | None = None,
     suffixes: list[str] | None = None,
     date_format_of_token: str | None = None,
     timezone: int = 0,
-    force_success: bool = False,
 ) -> None:
     prefixes = prefixes if prefixes else []
     suffixes = suffixes if suffixes else []
@@ -95,7 +98,7 @@ def check(
         print(f"Value : {value}")
         print(f"Token : {init_token}")
 
-    if isinstance(value, int) or isinstance(value, float):
+    if isinstance(value, int) or isinstance(value, Decimal):
         value = str(value)
 
     tolkien = ResetTolkien(
@@ -105,7 +108,6 @@ def check(
         prefixes=prefixes,
         suffixes=suffixes,
         date_format_of_token=date_format_of_token,
-        decimal_length=decimal_length,
     )
     start = time.time()
     results = tolkien.detectFormat(timestamp=timestamp_input, nb_threads=threads)
@@ -116,78 +118,87 @@ def check(
         print(f"Partial results : {results}")
     success, possible_formats = _check(tolkien, value, init_token, results)
     print(
-        f"[{round(end - start, 3)}s] {description} : {(OK if success or force_success else NOK)} (possibles formats : {len(possible_formats)})"
+        f"[{round(end - start, 3)}s] {description} : {(OK if success else NOK)} -> {results[0][0][0]} (possibles formats : {len(possible_formats)})"
     )
 
-print("[+] C=heck formats")
 
-timestamp = int(datetime.datetime.now().timestamp())
+def getIntTimestamp() -> int:
+    return int(datetime.datetime.now().timestamp())
+
+
+def getFloatTimestamp() -> Decimal:
+    return Decimal.from_float(time.time()) + Decimal(0)
+
+
+print("[+] Check formats")
+
+timestamp = getIntTimestamp()
 token = base64.b32encode(str(timestamp).encode()).decode()
 check(timestamp, token, description="Int timestamp with base32")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = base64.b64encode(str(timestamp).encode()).decode()
 check(timestamp, token, description="Int timestamp with base64")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = urlencode(str(timestamp))
 check(timestamp, token, description="Int timestamp with urlencode")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = hex(timestamp)[2:]
 check(timestamp, token, description="Int timestamp with hexint")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = hexlify(str(timestamp).encode()).decode()
 check(timestamp, token, description="Int timestamp with hexstr")
 
-timestamp = int(datetime.datetime.now().timestamp())
-token = str(uniqid(timestamp))
+timestamp = getIntTimestamp()
+token = str(uniqid(Decimal(timestamp)))
 check(
     timestamp,
     token,
     description="Int timestamp with uniqid",
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 mongoOID_example = "65b23087d5888f1392d74c95"
 u = MongoDBObjectID(mongoOID_example)
 u.set_timestamp(timestamp)
 token = str(u)
 check(timestamp, token, description="Int timestamp with mongodb_objectid")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 u = uuid.uuid1()
-token = str(uuid1(u.node, u.clock_seq, timestamp))
-check(timestamp, token, description="Int timestamp with uuidv1", decimal_length=UUID_DECIMAL_LENGTH)
+token = str(uuid1(u.node, u.clock_seq, Decimal(timestamp)))
+check(timestamp, token, description="Int timestamp with uuidv1")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = base64.b64encode(hex(timestamp)[2:].encode()).decode()
 check(timestamp, token, description="Int timestamp with hexint and base64")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = base64.b64encode(hexlify(str(timestamp).encode())).decode()
 check(timestamp, token, description="Int timestamp with hexstr and base64")
 
-timestamp = datetime.datetime.now().timestamp()
+timestamp = getFloatTimestamp()
 token = base64.b64encode(uniqid(timestamp).encode()).decode()
 check(timestamp, token, description="Float timestamp with uniqid and base64")
 
-timestamp = datetime.datetime.now().timestamp()
+timestamp = getFloatTimestamp()
 token = hexlify(str(timestamp).encode()).decode()
 check(timestamp, token, description="Float timestamp with hexstr")
 
-timestamp = datetime.datetime.now().timestamp()
+timestamp = getFloatTimestamp()
 token = base64.b64encode(hexlify(str(timestamp).encode())).decode()
 check(timestamp, token, description="Float timestamp with hexstr and base64")
 
-timestamp = datetime.datetime.now().timestamp()
+timestamp = getFloatTimestamp()
 token = uniqid(timestamp)
 check(timestamp, token, description="Float timestamp with uniqid")
 
 print("[+] Other checks")
 
-timestamp = int(datetime.datetime.now().timestamp())
+timestamp = getIntTimestamp()
 token = base64.b64encode(
     hashlib.sha1(str(timestamp).encode()).hexdigest().encode()
 ).decode()
@@ -202,8 +213,8 @@ print(f"Possible token exportation : {(OK if success else NOK)}")
 
 print("[+] Check prefix/suffix")
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 value = str(timestamp)
 token = hashlib.md5(value.encode()).hexdigest()
 check(
@@ -215,8 +226,8 @@ check(
     suffixes=["1", "2"],
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 value = "%s%s" % ("you", str(timestamp))
 token = hashlib.md5(value.encode()).hexdigest()
 check(
@@ -228,8 +239,8 @@ check(
     suffixes=["1", "2"],
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 value = "%s%s" % (str(timestamp), "2")
 token = hashlib.md5(value.encode()).hexdigest()
 check(
@@ -244,8 +255,8 @@ check(
 print("[+] Check datetime")
 
 date = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=-7)))
-timestamp = date.timestamp()
-timestamp_input = round(timestamp - 1, 6)
+timestamp = Decimal.from_float(date.timestamp())
+timestamp_input = timestamp - Decimal(1)
 token = date.strftime("%a, %d %b %Y %H:%M:%S %Z")
 check(
     timestamp,
@@ -257,8 +268,8 @@ check(
 )
 
 date = datetime.datetime.now(tz=datetime.timezone.utc)
-timestamp = date.timestamp()
-timestamp_input = round(timestamp - 1, 6)
+timestamp = Decimal.from_float(date.timestamp())
+timestamp_input = timestamp - Decimal(1)
 token = base64.b64encode(date.isoformat().encode()).decode()
 check(
     timestamp,
@@ -270,8 +281,8 @@ check(
 
 print("[+] Check hashes")
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp + TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp + TIMEDELTA_WITH_INT_VALUE
 token = hashlib.md5(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -280,8 +291,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = base64.b64encode(
     hashlib.md5(str(timestamp).encode()).hexdigest().encode()
 ).decode()
@@ -292,8 +303,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hexlify(hashlib.md5(str(timestamp).encode()).hexdigest().encode()).decode()
 check(
     timestamp,
@@ -302,8 +313,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.md5(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -312,8 +323,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha1(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -322,8 +333,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha224(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -332,8 +343,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha256(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -342,8 +353,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha384(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -352,8 +363,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha512(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -362,8 +373,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha3_224(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -372,8 +383,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha3_256(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -382,8 +393,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha3_384(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -392,8 +403,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.sha3_512(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -402,8 +413,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.blake2s(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -412,8 +423,8 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = int(datetime.datetime.now().timestamp())
-timestamp_input = round(timestamp - TIMEDELTA_WITH_INT_VALUE, 6)
+timestamp = getIntTimestamp()
+timestamp_input = timestamp - TIMEDELTA_WITH_INT_VALUE
 token = hashlib.blake2b(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -422,14 +433,19 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = datetime.datetime.now().timestamp()
-timestamp_input = round(timestamp + TIMEDELTA_WITH_FLOAT_VALUE, 6)
+timestamp = getFloatTimestamp()
+timestamp_input = timestamp + TIMEDELTA_WITH_FLOAT_VALUE
 u = uuid.uuid1()
 token = str(uuid1(u.node, u.clock_seq, timestamp))
-check(timestamp, token, description="Float timestamp with uuidv1", timestamp_input=timestamp_input)
+check(
+    timestamp,
+    token,
+    description="Float timestamp with uuidv1",
+    timestamp_input=timestamp_input,
+)
 
-timestamp = datetime.datetime.now().timestamp()
-timestamp_input = round(timestamp + TIMEDELTA_WITH_FLOAT_VALUE, 6)
+timestamp = getFloatTimestamp()
+timestamp_input = timestamp + TIMEDELTA_WITH_FLOAT_VALUE
 token = hashlib.blake2b(str(timestamp).encode()).hexdigest()
 check(
     timestamp,
@@ -438,18 +454,18 @@ check(
     timestamp_input=timestamp_input,
 )
 
-timestamp = datetime.datetime.now().timestamp()
-timestamp_input = round(timestamp + TIMEDELTA_WITH_FLOAT_VALUE, 6)
+timestamp = getFloatTimestamp()
+timestamp_input = timestamp + TIMEDELTA_WITH_FLOAT_VALUE
 token = hashlib.sha1(uniqid(timestamp).encode()).hexdigest()
 check(
     timestamp,
     token,
-    description="Uniquid timestamp with sha1",
+    description="Uniqid timestamp with sha1",
     timestamp_input=timestamp_input,
 )
 
-timestamp = datetime.datetime.now().timestamp()
-timestamp_input = round(timestamp - 1, 6)
+timestamp = getFloatTimestamp()
+timestamp_input = timestamp - Decimal(1)
 value = "%s%s%s" % ("you", str(timestamp), "2")
 token = hashlib.md5(value.encode()).hexdigest()
 check(
@@ -462,8 +478,8 @@ check(
 )
 
 date = datetime.datetime.now(tz=datetime.timezone.utc)
-timestamp = date.timestamp()
-timestamp_input = round(timestamp - 1, 6)
+timestamp = Decimal.from_float(date.timestamp())
+timestamp_input = timestamp - Decimal(1)
 token = hashlib.md5(date.isoformat().encode()).hexdigest()
 check(
     timestamp,
@@ -475,13 +491,12 @@ check(
 
 print("[+] Check not working")
 
-timestamp = datetime.datetime.now().timestamp()
-timestamp_input = round(timestamp + TIMEDELTA_WITH_FLOAT_VALUE, 6)
-token = hashlib.sha3_512("fusbevuisbevuiesbvuiesbvsie".encode()).hexdigest()
+timestamp = getFloatTimestamp()
+timestamp_input = timestamp + TIMEDELTA_WITH_FLOAT_VALUE
+token = hashlib.sha3_256("fusbevuisbevuiesbvuiesbvsie".encode()).hexdigest()
 check(
     timestamp,
     token,
-    description="Unknown token with sha3_512",
+    description="Unknown token with sha3_256",
     timestamp_input=timestamp_input,
-    force_success=True,
 )
