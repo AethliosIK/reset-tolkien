@@ -235,11 +235,11 @@ def uniqid(timestamp: Decimal, prefix: str = "", more_entropy: bool = False) -> 
         the result will be unique.
     Returns the unique identifier, as a string."""
 
-    # m = time.time()
-    m = timestamp
-
-    sec = math.floor(m)
-    usec = round(1000000 * (m - sec))
+    sec, usec = divmod(timestamp, 1)
+    sec = int(sec)
+    usec = int(usec * 1000000)
+    while usec != 0 and usec % 10 == 0:
+        usec = int(usec / 10)
     if more_entropy:
         lcg = random.random()
         the_uniqid = "%08x%05x%.8F" % (sec, usec, lcg * 10)
