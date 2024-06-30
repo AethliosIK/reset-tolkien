@@ -45,7 +45,7 @@ DEFAULT_CONFIG_FILE = path.join(path.dirname(path.realpath(__file__)), "config",
 
 SERVER_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
 
-PARTIAL_FUNC_NAME_REGEX = r"functools\.partial\(<bound method Formatter\.([a-zA-Z_]*) of <src\.format\.Formatter object at [0-9a-fx]*>>, (.*)\)"
+PARTIAL_FUNC_NAME_REGEX = r"functools\.partial\(<bound method Formatter\.([a-zA-Z_]*) of <.*\.format\.Formatter object at [0-9a-fx]*>>, (.*)\)"
 
 # 12/12/2023 or 5/5/2023 or 12/12/23 or 2023/12/12
 DATE_SLASH_REGEX = r"[0-9]{1,4}\/[0-9]{1,2}\/[0-9]{1,4}"
