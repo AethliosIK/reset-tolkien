@@ -192,7 +192,7 @@ class MongoDBObjectID:
         self.timestamp = timestamp
 
     def __str__(self) -> str:
-        return "%08x%06x%02x%06x" % (
+        return "%08x%06x%04x%06x" % (
             self.timestamp,
             self.machine,
             self.process,
