@@ -46,6 +46,7 @@ class ResetTolkien:
         timezone: int = 0,
         date_format_of_token: Optional[str] = None,
         formats: Optional[list[str]] = None,
+        progress_active: bool = False,
     ) -> None:
         """Initialization function of ResetTolkien."""
 
@@ -84,6 +85,7 @@ class ResetTolkien:
         self.timestamp_hash_formats = self.getTimestampsHashFormatsByLevel(
             level, timestamp_hash_formats_config_file
         )
+        self.progress_active = progress_active
 
     def getTimestampsHashFormatsByLevel(
         self, level: int, timestamp_hash_formats_config_file: str
@@ -145,6 +147,7 @@ class ResetTolkien:
                 multithreading=multithreading,
                 prefixes=self.prefixes,
                 suffixes=self.suffixes,
+                progress_active=self.progress_active
             )
             if isinstance(c, tuple):
                 return c, hash

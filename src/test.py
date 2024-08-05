@@ -28,7 +28,7 @@ TIMEDELTA_WITH_INT_VALUE = 30
 
 OK = "\033[92mOK\033[0m"
 NOK = "\033[91mNOK\033[0m"
-
+PROGRESS_ACTIVE = True
 
 def benchmark_multithread() -> None:
     timestamp_input = getFloatTimestamp()
@@ -108,6 +108,7 @@ def check(
         prefixes=prefixes,
         suffixes=suffixes,
         date_format_of_token=date_format_of_token,
+        progress_active=PROGRESS_ACTIVE
     )
     start = time.time()
     results = tolkien.detectFormat(timestamp=timestamp_input, nb_threads=threads)

@@ -84,6 +84,12 @@ parent_parser.add_argument(
     type=int,
     default=0,
 )
+parent_parser.add_argument(
+    "--progress",
+    help="Show a progress bar. (default: True)",
+    action="store_true",
+    default=True
+)
 
 # MAIN
 
@@ -306,6 +312,7 @@ def main():
             hashes=args.hashes,
             date_format_of_token=args.date_format_of_token,
             verbosity=args.verbosity,
+            progress_active=args.progress
         )
 
         results = tolkien.detectFormat(
@@ -360,6 +367,7 @@ def main():
             date_format_of_token=args.date_format_of_token,
             verbosity=args.verbosity,
             formats=args.token_format,
+            progress_active=args.progress
         )
 
         for token, value in tolkien.generate_possible_token(
@@ -426,6 +434,7 @@ def main():
             date_format_of_token=args.date_format_of_token,
             verbosity=args.verbosity,
             formats=args.token_format,
+            progress_active=args.progress
         )
 
         for token, value in tolkien.generate_bounded_possible_token(

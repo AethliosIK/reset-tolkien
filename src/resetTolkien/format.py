@@ -420,13 +420,14 @@ class Formatter:
         prefixes: list[str],
         suffixes: list[str],
         nb_threads: int = DEFAULT_THREAD_NUMBER,
+        progress_active: bool = False,
     ) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """Decrypts a timestamp-based value by using multithreading"""
 
         data = None, None, None
         chunksize = round(pow(len(possibleTokens) / nb_threads, 0.5))
 
-        with tqdm(total=len(possibleTokens)) as progress:
+        with tqdm(total=len(possibleTokens), disable=(not progress_active)) as progress:
             with concurrent.futures.ProcessPoolExecutor(
                 max_workers=nb_threads
             ) as executor:
@@ -450,10 +451,11 @@ class Formatter:
         hash_func: Callable[[str], str],
         prefixes: list[str],
         suffixes: list[str],
+        progress_active: bool = False,
     ) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """Decrypts a timestamp-based value by using naive method"""
 
-        with tqdm(total=len(possibleTokens)) as progress:
+        with tqdm(total=len(possibleTokens), disable=(not progress_active)) as progress:
             for value, timestamp in possibleTokens:
                 timestamp, prefix, suffix = self.hashing_with_prefix(
                     hash_func, prefixes, suffixes, token, (value, timestamp)
@@ -482,6 +484,7 @@ class Formatter:
         possibleTokens: Optional[GeneratorLen] = None,
         encode: Optional[bool] = True,
         multithreading: Optional[int] = None,
+        progress_active: bool = False,
         **kwargs: Any,
     ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
         """Generic function for hashing or decrypting a value based on a timestamp."""
@@ -508,6 +511,7 @@ class Formatter:
                 prefixes,
                 suffixes,
                 nb_threads=multithreading,
+                progress_active=progress_active,
             )
         return self._native_decrypt(
             token,
@@ -515,6 +519,7 @@ class Formatter:
             hash_func,
             prefixes,
             suffixes,
+            progress_active=progress_active,
         )
 
     ### Hash function list
