@@ -4,6 +4,7 @@
 import base64
 import re
 import concurrent.futures
+from tqdm import tqdm
 
 from functools import partial
 from typing import Callable, Any, Optional
@@ -424,15 +425,22 @@ class Formatter:
 
         data = None, None, None
         chunksize = round(pow(len(possibleTokens) / nb_threads, 0.5))
-        with concurrent.futures.ProcessPoolExecutor(max_workers=nb_threads) as executor:
-            for timestamp, prefix, suffix in executor.map(
-                partial(self.hashing_with_prefix, hash_func, prefixes, suffixes, token),
-                possibleTokens,
-                chunksize=chunksize,
-            ):
-                if timestamp:
-                    data = timestamp, prefix, suffix
-                    break
+
+        with tqdm(total=len(possibleTokens)) as progress:
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=nb_threads
+            ) as executor:
+                for timestamp, prefix, suffix in executor.map(
+                    partial(
+                        self.hashing_with_prefix, hash_func, prefixes, suffixes, token
+                    ),
+                    possibleTokens,
+                    chunksize=chunksize,
+                ):
+                    if timestamp:
+                        data = timestamp, prefix, suffix
+                        break
+                    progress.update(1)
         return data
 
     def _native_decrypt(
@@ -445,12 +453,14 @@ class Formatter:
     ) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """Decrypts a timestamp-based value by using naive method"""
 
-        for value, timestamp in possibleTokens:
-            timestamp, prefix, suffix = self.hashing_with_prefix(
-                hash_func, prefixes, suffixes, token, (value, timestamp)
-            )
-            if timestamp:
-                return timestamp, prefix, suffix
+        with tqdm(total=len(possibleTokens)) as progress:
+            for value, timestamp in possibleTokens:
+                timestamp, prefix, suffix = self.hashing_with_prefix(
+                    hash_func, prefixes, suffixes, token, (value, timestamp)
+                )
+                if timestamp:
+                    return timestamp, prefix, suffix
+                progress.update(1)
         raise NotAHash(f"It is not a hash")
 
     def is_hash(self, hash: str, hash_func: HashingType) -> Optional[HashingType]:

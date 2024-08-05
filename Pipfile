@@ -9,6 +9,7 @@ dateparser = "==1.1.8"
 typing-extensions = "*"
 pyyaml = "==6.0.1"
 shortuuid = "==1.0.11"
+tqdm = "==4.66.5"
 
 [dev-packages]
 
