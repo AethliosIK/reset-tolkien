@@ -18,6 +18,7 @@ from resetTolkien.utils import (
     EncodingType,
     HashingType,
     HashIdentifierType,
+    TimestampHashFormat,
     NotAHash,
     GeneratorLen,
     to_microsecond_timestamp,
@@ -358,16 +359,6 @@ class Formatter:
             "blake_512": self.blake_512,
         }
 
-    def intHashing(self) -> dict[str, HashingType]:
-        """Returns all hash functions for a integer timestamp."""
-
-        return self.allHashing()
-
-    def floatHashing(self) -> dict[str, HashingType]:
-        """Returns all hash functions for a integer timestamp."""
-
-        return self.allHashing()
-
     def availableHashingDict(
         self, token: Optional[str] = None
     ) -> dict[str, HashingType]:
@@ -384,84 +375,139 @@ class Formatter:
                 hashes[h] = hash
         return hashes
 
+    def encode(
+        self,
+        value: str,
+        token: Optional[str],
+        formats: list[FormatType],
+        timezone: int = 0,
+        date_format_of_token: Optional[str] = None,
+    ) -> str:
+        for format in formats[::-1]:
+            token = format(
+                value,
+                encode=True,
+                timezone=timezone,
+                date_format_of_token=date_format_of_token,
+                init_token=token,
+            )
+            if isinstance(token, str):
+                value = token
+            else:
+                raise ValueError("The token has not been encoded but decoded")
+        return value
+
     def hashing_with_prefix(
         self,
-        hash_func: Callable[[str], str],
+        hashes: list[HashingType],
+        timestamp_hash_formats: list[TimestampHashFormat],
         prefixes: list[str],
         suffixes: list[str],
         token: str,
-        values: tuple[str, str],
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+        timestamp: str,
+    ) -> tuple[
+        Optional[str],
+        Optional[str],
+        Optional[str],
+        Optional[HashingType],
+        Optional[TimestampHashFormat],
+    ]:
         """Returns timestamp and encoded value if hashed value from various provided prefixes and suffixes"""
 
-        encoded_timestamp, timestamp = values
-        if token == hash_func(encoded_timestamp):
-            return timestamp, None, None
-        for prefix in prefixes:
-            value = "%s%s" % (prefix, encoded_timestamp)
-            if token == hash_func(value):
-                return timestamp, prefix, None
-        for suffix in suffixes:
-            value = "%s%s" % (encoded_timestamp, suffix)
-            if token == hash_func(value):
-                return timestamp, None, suffix
-        for prefix in prefixes:
-            for suffix in suffixes:
-                value = "%s%s%s" % (prefix, encoded_timestamp, suffix)
-                if token == hash_func(value):
-                    return timestamp, prefix, suffix
-        return None, None, None
+        for timestamp_hash_format in timestamp_hash_formats:
+            encoded_timestamp = self.encode(timestamp, token, timestamp_hash_format.formats_output)
+            for hash_func in hashes:
+                if token == hash_func(encoded_timestamp):
+                    return timestamp, None, None, hash_func, timestamp_hash_format
+                for prefix in prefixes:
+                    value = "%s%s" % (prefix, encoded_timestamp)
+                    if token == hash_func(value):
+                        return timestamp, prefix, None, hash_func, timestamp_hash_format
+                for suffix in suffixes:
+                    value = "%s%s" % (encoded_timestamp, suffix)
+                    if token == hash_func(value):
+                        return timestamp, None, suffix, hash_func, timestamp_hash_format
+                for prefix in prefixes:
+                    for suffix in suffixes:
+                        value = "%s%s%s" % (prefix, encoded_timestamp, suffix)
+                        if token == hash_func(value):
+                            return timestamp, prefix, suffix, hash_func, timestamp_hash_format
+        return None, None, None, None, None
 
-    def _multithread_decrypt(
+    def multithread_decrypt(
         self,
         token: str,
         possibleTokens: GeneratorLen,
-        hash_func: Callable[[str], str],
+        timestamp_hash_formats: list[TimestampHashFormat],
+        hashes: list[HashingType],
         prefixes: list[str],
         suffixes: list[str],
         nb_threads: int = DEFAULT_THREAD_NUMBER,
         progress_active: bool = False,
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[
+        Optional[str],
+        Optional[str],
+        Optional[str],
+        Optional[HashingType],
+        Optional[TimestampHashFormat],
+    ]:
         """Decrypts a timestamp-based value by using multithreading"""
 
-        data = None, None, None
+        data = None, None, None, None, None
         chunksize = round(pow(len(possibleTokens) / nb_threads, 0.5))
 
         with tqdm(total=len(possibleTokens), disable=(not progress_active)) as progress:
             with concurrent.futures.ProcessPoolExecutor(
                 max_workers=nb_threads
             ) as executor:
-                for timestamp, prefix, suffix in executor.map(
+                for timestamp, prefix, suffix, hash, timestamp_hash_format in executor.map(
                     partial(
-                        self.hashing_with_prefix, hash_func, prefixes, suffixes, token
+                        self.hashing_with_prefix,
+                        hashes,
+                        timestamp_hash_formats,
+                        prefixes,
+                        suffixes,
+                        token,
                     ),
                     possibleTokens,
                     chunksize=chunksize,
                 ):
                     if timestamp:
-                        data = timestamp, prefix, suffix
+                        data = timestamp, prefix, suffix, hash, timestamp_hash_format
                         break
                     progress.update(1)
         return data
 
-    def _native_decrypt(
+    def native_decrypt(
         self,
         token: str,
         possibleTokens: GeneratorLen,
-        hash_func: Callable[[str], str],
+        timestamp_hash_formats: list[TimestampHashFormat],
+        hashes: list[HashingType],
         prefixes: list[str],
         suffixes: list[str],
         progress_active: bool = False,
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[
+        Optional[str],
+        Optional[str],
+        Optional[str],
+        Optional[HashingType],
+        Optional[TimestampHashFormat],
+    ]:
         """Decrypts a timestamp-based value by using naive method"""
 
         with tqdm(total=len(possibleTokens), disable=(not progress_active)) as progress:
-            for value, timestamp in possibleTokens:
-                timestamp, prefix, suffix = self.hashing_with_prefix(
-                    hash_func, prefixes, suffixes, token, (value, timestamp)
+            for t in possibleTokens:
+                timestamp, prefix, suffix, hash, timestamp_hash_format = self.hashing_with_prefix(
+                    hashes,
+                    timestamp_hash_formats,
+                    prefixes,
+                    suffixes,
+                    token,
+                    t,
                 )
                 if timestamp:
-                    return timestamp, prefix, suffix
+                    return timestamp, prefix, suffix, hash, timestamp_hash_format
                 progress.update(1)
         raise NotAHash(f"It is not a hash")
 
@@ -481,285 +527,80 @@ class Formatter:
         self,
         hash_func: Callable[[str], str],
         token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        progress_active: bool = False,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> str:
         """Generic function for hashing or decrypting a value based on a timestamp."""
-
-        if encode:
-            return hash_func(token)
-        if not possibleTokens:
-            raise ValueError("No possibleTokens")
-        prefixes: list[str] = (
-            kwargs["prefixes"]
-            if "prefixes" in kwargs and isinstance(kwargs["prefixes"], list)
-            else []
-        )
-        suffixes: list[str] = (
-            kwargs["suffixes"]
-            if "suffixes" in kwargs and isinstance(kwargs["suffixes"], list)
-            else []
-        )
-        if multithreading and multithreading > 1:
-            return self._multithread_decrypt(
-                token,
-                possibleTokens,
-                hash_func,
-                prefixes,
-                suffixes,
-                nb_threads=multithreading,
-                progress_active=progress_active,
-            )
-        return self._native_decrypt(
-            token,
-            possibleTokens,
-            hash_func,
-            prefixes,
-            suffixes,
-            progress_active=progress_active,
-        )
+        return hash_func(token)
 
     ### Hash function list
 
     def is_md5(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.md5)
 
-    def md5(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.md5,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def md5(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.md5, token)
 
     def is_sha1(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha1)
 
-    def sha1(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha1,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha1(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha1, token)
 
     def is_sha224(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha224)
 
-    def sha224(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha224,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha224(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha224, token)
 
     def is_sha256(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha256)
 
-    def sha256(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha256,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha256(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha256, token)
 
     def is_sha384(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha384)
 
-    def sha384(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha384,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha384(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha384, token)
 
     def is_sha512(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha512)
 
-    def sha512(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha512,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha512(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha512, token)
 
     def is_sha3_224(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha3_224)
 
-    def sha3_224(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha3_224,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha3_224(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha3_224, token)
 
     def is_sha3_256(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha3_256)
 
-    def sha3_256(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha3_256,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha3_256(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha3_256, token)
 
     def is_sha3_384(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha3_384)
 
-    def sha3_384(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha3_384,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha3_384(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha3_384, token)
 
     def is_sha3_512(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.sha3_512)
 
-    def sha3_512(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.sha3_512,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def sha3_512(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.sha3_512, token)
 
     def is_blake_256(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.blake_256)
 
-    def blake_256(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.blake_256,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def blake_256(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.blake_256, token)
 
     def is_blake_512(self, hash: str) -> Optional[HashingType]:
         return self.is_hash(hash, self.blake_512)
 
-    def blake_512(
-        self,
-        token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]:
-        return self.hash(
-            Hashes.blake_512,
-            token,
-            possibleTokens=possibleTokens,
-            encode=encode,
-            multithreading=multithreading,
-            **kwargs,
-        )
+    def blake_512(self, token: str, **kwargs: Any) -> str:
+        return self.hash(Hashes.blake_512, token)

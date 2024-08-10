@@ -15,15 +15,16 @@ from resetTolkien.constants import TIMESTAMP_STR_LENGTH, UUID_DECIMAL_LENGTH
 
 import sys
 
-getcontext().prec = TIMESTAMP_STR_LENGTH + UUID_DECIMAL_LENGTH
-
 verbosity = 0
 if len(sys.argv) == 3 and sys.argv[1] == "-v":
     verbosity = int(sys.argv[2])
 
 threads = 8
+DECIMAL_LENGTH = UUID_DECIMAL_LENGTH
 
-TIMEDELTA_WITH_FLOAT_VALUE = Decimal(1.1)
+getcontext().prec = TIMESTAMP_STR_LENGTH + DECIMAL_LENGTH
+
+TIMEDELTA_WITH_FLOAT_VALUE = Decimal(0.1)
 TIMEDELTA_WITH_INT_VALUE = 30
 
 OK = "\033[92mOK\033[0m"
@@ -108,13 +109,15 @@ def check(
         prefixes=prefixes,
         suffixes=suffixes,
         date_format_of_token=date_format_of_token,
+        decimal_length=DECIMAL_LENGTH,
         progress_active=PROGRESS_ACTIVE
     )
     start = time.time()
     results = tolkien.detectFormat(timestamp=timestamp_input, nb_threads=threads)
-    if not results:
-        raise Exception("No defined token")
     end = time.time()
+    if not results:
+        print(f"[{round(end - start, 3)}s] {description} : {NOK}")
+        raise Exception("No defined token")
     if verbosity >= 1:
         print(f"Partial results : {results}")
     success, possible_formats = _check(tolkien, value, init_token, results)
@@ -208,8 +211,8 @@ tolkien = ResetTolkien(token=token, formats=["base64", "sha1"])
 success = token == tolkien.encode(str(timestamp))
 print(f"Format importation : {(OK if success else NOK)}")
 
-tokens = list(tolkien.generate_possible_token(timestamp, range_limit=4))
-success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0][0] == token
+tokens = list(tolkien.generate_possible_token(timestamp, range_limit=4, formats=tolkien.formats))
+success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0] == token
 print(f"Possible token exportation : {(OK if success else NOK)}")
 
 print("[+] Check prefix/suffix")
@@ -257,7 +260,7 @@ print("[+] Check datetime")
 
 date = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=-7)))
 timestamp = Decimal.from_float(date.timestamp())
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 token = date.strftime("%a, %d %b %Y %H:%M:%S %Z")
 check(
     timestamp,
@@ -270,7 +273,7 @@ check(
 
 date = datetime.datetime.now(tz=datetime.timezone.utc)
 timestamp = Decimal.from_float(date.timestamp())
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 token = base64.b64encode(date.isoformat().encode()).decode()
 check(
     timestamp,
@@ -466,7 +469,7 @@ check(
 )
 
 timestamp = getFloatTimestamp()
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 value = "%s%s%s" % ("you", str(timestamp), "2")
 token = hashlib.md5(value.encode()).hexdigest()
 check(
@@ -480,7 +483,7 @@ check(
 
 date = datetime.datetime.now(tz=datetime.timezone.utc)
 timestamp = Decimal.from_float(date.timestamp())
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 token = hashlib.md5(date.isoformat().encode()).hexdigest()
 check(
     timestamp,

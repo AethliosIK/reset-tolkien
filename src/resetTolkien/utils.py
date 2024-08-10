@@ -39,7 +39,7 @@ class NotAHash(Exception):
 
 # GENERATOR
 
-TimestampGenerator: TypeAlias = Generator[tuple[str, str], None, None]
+TimestampGenerator: TypeAlias = Generator[str, None, None]
 
 
 class AlternativeGen:
@@ -111,11 +111,8 @@ class HashingType(Protocol):
     def __call__(
         self,
         token: str,
-        possibleTokens: Optional[GeneratorLen] = None,
-        encode: Optional[bool] = True,
-        multithreading: Optional[int] = None,
         **kwargs: Any,
-    ) -> str | tuple[Optional[str], Optional[str], Optional[str]]: ...
+    ) -> str: ...
 
     def __name__(self) -> str:
         return self.__call__.__name__
@@ -387,16 +384,12 @@ class TimestampHashFormat:
     def __init__(
         self,
         description: str,
-        hashes_by_type: dict[str, HashingType],
-        timestamp_type_func: Callable[[str], Decimal | int],
-        range_limit: int,
+        timestamp_type: type,
         level: int = MIN_DEPTH_LEVEL,
         formats_output: Optional[list[FormatType]] = None,
     ) -> None:
         self.description = description
-        self.hashes_by_type = hashes_by_type
-        self.timestamp_type_func = timestamp_type_func
-        self.range_limit = range_limit
+        self.timestamp_type = timestamp_type
         self.level = level
         self.formats_output: list[FormatType] = (
             [] if formats_output is None else formats_output
@@ -406,13 +399,26 @@ class TimestampHashFormat:
         return f"({self.level}) {self.description}"
 
 
+class TimestampFormatType:
+    """"""
+
+    def __init__(
+        self,
+        timestamp_type: type,
+        timestamp_type_func: Callable[[str], Decimal | int],
+        range_limit: int,
+    ) -> None:
+        self.timestamp_type = timestamp_type
+        self.timestamp_type_func = timestamp_type_func
+        self.range_limit = range_limit
+
+    def __repr__(self) -> str:
+        return f"{self.timestamp_type}"
+
+
 def import_from_yaml(
     filename: str,
     selected_level: int,
-    int_range_limit: int,
-    float_range_limit: int,
-    intHashing: dict[str, HashingType],
-    floatHashing: dict[str, HashingType],
     allEncoding: dict[str, EncodingType],
 ) -> list[TimestampHashFormat]:
     """From a YAML file, imports a TimestampHashFormat list"""
@@ -435,17 +441,9 @@ def import_from_yaml(
                 else "Not described"
             )
             if hashFormat["timestamp_type"] == "int":
-                hashes_by_type = intHashing.copy()
-                timestamp_type_func: Callable[[str], Decimal | int] = (
-                    lambda timestamp: int(Decimal(timestamp))
-                )
-                range_limit = int_range_limit
+                timestamp_type = int
             elif hashFormat["timestamp_type"] == "float":
-                hashes_by_type = floatHashing.copy()
-                timestamp_type_func: Callable[[str], Decimal | int] = (
-                    lambda timestamp: Decimal(timestamp)
-                )
-                range_limit = float_range_limit
+                timestamp_type = float
             else:
                 raise ValueError('Please set "int" or "float" types.')
             formats: list[FormatType] = []
@@ -460,9 +458,7 @@ def import_from_yaml(
             r.append(
                 TimestampHashFormat(
                     description=description,
-                    hashes_by_type=hashes_by_type,
-                    timestamp_type_func=timestamp_type_func,
-                    range_limit=range_limit,
+                    timestamp_type=timestamp_type,
                     level=level,
                     formats_output=formats,
                 )
