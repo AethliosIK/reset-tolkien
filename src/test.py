@@ -212,7 +212,7 @@ success = token == tolkien.encode(str(timestamp))
 print(f"Format importation : {(OK if success else NOK)}")
 
 tokens = list(tolkien.generate_possible_token(timestamp, range_limit=4, formats=tolkien.formats))
-success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0] == token
+success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0][1] == token
 print(f"Possible token exportation : {(OK if success else NOK)}")
 
 print("[+] Check prefix/suffix")

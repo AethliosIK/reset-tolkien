@@ -375,9 +375,9 @@ class ResetTolkien:
             if suffix:
                 timestamp = f"{timestamp}{suffix}"
             if formats:
-                yield self.encode(timestamp, formats=formats)
+                yield self.encode(timestamp, formats=formats), timestamp
             else:
-                yield timestamp
+                yield timestamp, timestamp
 
     def generate_bounded_possible_token(
         self,

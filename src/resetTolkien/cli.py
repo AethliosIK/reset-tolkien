@@ -445,6 +445,7 @@ def main():
             args.end_timestamp,
             prefix=args.prefix,
             suffix=args.suffix,
+            formats=tolkien.formats,
         ):
             output = f"{token}"
             if args.with_timestamp:

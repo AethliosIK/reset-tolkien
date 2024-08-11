@@ -90,7 +90,7 @@ class Formatter:
                     name = f"{elems.groups()[0]}({arg})"
                     formats_name.append(name)
             else:
-                formats_name.append(format.__name__)
+                formats_name.append(str(format.__name__))
         return ",".join(formats_name)
 
     def isLiteralIntegerOrFloat(self, token: str) -> bool:
@@ -404,7 +404,7 @@ class Formatter:
         prefixes: list[str],
         suffixes: list[str],
         token: str,
-        timestamp: str,
+        values: tuple[str, str],
     ) -> tuple[
         Optional[str],
         Optional[str],
@@ -414,6 +414,7 @@ class Formatter:
     ]:
         """Returns timestamp and encoded value if hashed value from various provided prefixes and suffixes"""
 
+        timestamp, _ = values
         for timestamp_hash_format in timestamp_hash_formats:
             encoded_timestamp = self.encode(timestamp, token, timestamp_hash_format.formats_output)
             for hash_func in hashes:
@@ -497,14 +498,14 @@ class Formatter:
         """Decrypts a timestamp-based value by using naive method"""
 
         with tqdm(total=len(possibleTokens), disable=(not progress_active)) as progress:
-            for t in possibleTokens:
+            for values in possibleTokens:
                 timestamp, prefix, suffix, hash, timestamp_hash_format = self.hashing_with_prefix(
                     hashes,
                     timestamp_hash_formats,
                     prefixes,
                     suffixes,
                     token,
-                    t,
+                    values,
                 )
                 if timestamp:
                     return timestamp, prefix, suffix, hash, timestamp_hash_format

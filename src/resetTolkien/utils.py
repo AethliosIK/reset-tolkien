@@ -39,7 +39,7 @@ class NotAHash(Exception):
 
 # GENERATOR
 
-TimestampGenerator: TypeAlias = Generator[str, None, None]
+TimestampGenerator: TypeAlias = Generator[tuple[str, str], None, None]
 
 
 class AlternativeGen:
