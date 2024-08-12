@@ -212,7 +212,7 @@ success = token == tolkien.encode(str(timestamp))
 print(f"Format importation : {(OK if success else NOK)}")
 
 tokens = list(tolkien.generate_possible_token(timestamp, range_limit=4, formats=tolkien.formats))
-success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0][1] == token
+success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0][0] == token
 print(f"Possible token exportation : {(OK if success else NOK)}")
 
 print("[+] Check prefix/suffix")
@@ -268,6 +268,19 @@ check(
     description="Datetime RFC2822 with timezone",
     timestamp_input=timestamp_input,
     date_format_of_token="%a, %d %b %Y %H:%M:%S %Z",
+    timezone=-7,
+)
+
+date = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=-7)))
+timestamp = Decimal.from_float(date.timestamp())
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
+d = date.strftime("%a, %d %b %Y %H:%M:%S -0700")
+token = hashlib.sha1(str(d).encode()).hexdigest()
+check(
+    timestamp,
+    token,
+    description="Datetime RFC2822 with timezone and sha1",
+    timestamp_input=timestamp_input,
     timezone=-7,
 )
 

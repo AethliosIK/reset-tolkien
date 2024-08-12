@@ -404,6 +404,8 @@ class Formatter:
         prefixes: list[str],
         suffixes: list[str],
         token: str,
+        timezone: int,
+        date_format_of_token: Optional[str],
         values: tuple[str, str],
     ) -> tuple[
         Optional[str],
@@ -416,7 +418,13 @@ class Formatter:
 
         timestamp, _ = values
         for timestamp_hash_format in timestamp_hash_formats:
-            encoded_timestamp = self.encode(timestamp, token, timestamp_hash_format.formats_output)
+            encoded_timestamp = self.encode(
+                timestamp,
+                token,
+                timestamp_hash_format.formats_output,
+                timezone=timezone,
+                date_format_of_token=date_format_of_token,
+            )
             for hash_func in hashes:
                 if token == hash_func(encoded_timestamp):
                     return timestamp, None, None, hash_func, timestamp_hash_format
@@ -432,7 +440,13 @@ class Formatter:
                     for suffix in suffixes:
                         value = "%s%s%s" % (prefix, encoded_timestamp, suffix)
                         if token == hash_func(value):
-                            return timestamp, prefix, suffix, hash_func, timestamp_hash_format
+                            return (
+                                timestamp,
+                                prefix,
+                                suffix,
+                                hash_func,
+                                timestamp_hash_format,
+                            )
         return None, None, None, None, None
 
     def multithread_decrypt(
@@ -443,6 +457,8 @@ class Formatter:
         hashes: list[HashingType],
         prefixes: list[str],
         suffixes: list[str],
+        timezone: int,
+        date_format_of_token: Optional[str],
         nb_threads: int = DEFAULT_THREAD_NUMBER,
         progress_active: bool = False,
     ) -> tuple[
@@ -461,7 +477,13 @@ class Formatter:
             with concurrent.futures.ProcessPoolExecutor(
                 max_workers=nb_threads
             ) as executor:
-                for timestamp, prefix, suffix, hash, timestamp_hash_format in executor.map(
+                for (
+                    timestamp,
+                    prefix,
+                    suffix,
+                    hash,
+                    timestamp_hash_format,
+                ) in executor.map(
                     partial(
                         self.hashing_with_prefix,
                         hashes,
@@ -469,6 +491,8 @@ class Formatter:
                         prefixes,
                         suffixes,
                         token,
+                        timezone,
+                        date_format_of_token,
                     ),
                     possibleTokens,
                     chunksize=chunksize,
@@ -487,6 +511,8 @@ class Formatter:
         hashes: list[HashingType],
         prefixes: list[str],
         suffixes: list[str],
+        timezone: int,
+        date_format_of_token: Optional[str],
         progress_active: bool = False,
     ) -> tuple[
         Optional[str],
@@ -499,13 +525,17 @@ class Formatter:
 
         with tqdm(total=len(possibleTokens), disable=(not progress_active)) as progress:
             for values in possibleTokens:
-                timestamp, prefix, suffix, hash, timestamp_hash_format = self.hashing_with_prefix(
-                    hashes,
-                    timestamp_hash_formats,
-                    prefixes,
-                    suffixes,
-                    token,
-                    values,
+                timestamp, prefix, suffix, hash, timestamp_hash_format = (
+                    self.hashing_with_prefix(
+                        hashes,
+                        timestamp_hash_formats,
+                        prefixes,
+                        suffixes,
+                        token,
+                        timezone,
+                        date_format_of_token,
+                        values,
+                    )
                 )
                 if timestamp:
                     return timestamp, prefix, suffix, hash, timestamp_hash_format

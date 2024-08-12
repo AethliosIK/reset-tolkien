@@ -176,6 +176,8 @@ class ResetTolkien:
                             available_hashes,
                             self.prefixes,
                             self.suffixes,
+                            self.timezone,
+                            self.date_format_of_token,
                             nb_threads=multithreading,
                             progress_active=self.progress_active,
                         )
@@ -189,6 +191,8 @@ class ResetTolkien:
                             available_hashes,
                             self.prefixes,
                             self.suffixes,
+                            self.timezone,
+                            self.date_format_of_token,
                             progress_active=self.progress_active,
                         )
                     )
