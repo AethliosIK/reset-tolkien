@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Aethlios <tom.chambaretaud@protonmail.com>
 
-from typing import Callable, Any, Optional
+from typing import Any, Optional
 from functools import partial
 from decimal import Decimal, getcontext
 from math import floor
@@ -13,6 +13,7 @@ from resetTolkien.utils import (
     AlternativeGen,
     TimestampGenerator,
     TimestampHashFormat,
+    TimestampFormatType,
     import_from_yaml,
     possible_date_format_of_token,
 )
@@ -43,9 +44,11 @@ class ResetTolkien:
         prefixes: Optional[list[str]] = None,
         suffixes: Optional[list[str]] = None,
         hashes: Optional[list[str]] = None,
+        alternative_tokens: Optional[list[str]] = None,
         timezone: int = 0,
         date_format_of_token: Optional[str] = None,
         formats: Optional[list[str]] = None,
+        progress_active: bool = False,
     ) -> None:
         """Initialization function of ResetTolkien."""
 
@@ -73,6 +76,9 @@ class ResetTolkien:
                 if not h in self.formatter.allHashing():
                     raise ValueError(f"Unknown hash : {h}")
             self.hashes = hashes.copy()
+        self.alternative_tokens: list[str] = (
+            [] if not alternative_tokens else alternative_tokens.copy()
+        )
         self.timezone = timezone
         self.date_format_of_token = date_format_of_token
         self.formats = []
@@ -84,6 +90,15 @@ class ResetTolkien:
         self.timestamp_hash_formats = self.getTimestampsHashFormatsByLevel(
             level, timestamp_hash_formats_config_file
         )
+        self.progress_active = progress_active
+        self.timestamp_format_types = [
+            TimestampFormatType(
+                int, (lambda t: int(Decimal(str(t)))), self.int_range_limit
+            ),
+            TimestampFormatType(
+                float, (lambda t: Decimal(str(t))), self.float_range_limit
+            ),
+        ]
 
     def getTimestampsHashFormatsByLevel(
         self, level: int, timestamp_hash_formats_config_file: str
@@ -99,10 +114,6 @@ class ResetTolkien:
         timestamp_hash_formats = import_from_yaml(
             timestamp_hash_formats_config_file,
             level,
-            self.int_range_limit,
-            self.float_range_limit,
-            self.formatter.intHashing(),
-            self.formatter.floatHashing(),
             self.formatter.allEncoding(),
         )
 
@@ -125,86 +136,94 @@ class ResetTolkien:
                 print(f"Exception with {format.__name__} : {e}")
             return None, None
 
-    def detectOneHash(
-        self,
-        token: str,
-        hash: HashingType,
-        possibleTokens: GeneratorLen,
-        multithreading: Optional[int] = None,
-    ) -> tuple[
-        tuple[Optional[str], Optional[str], Optional[str]], Optional[HashingType]
-    ]:
-        """Determines whether a value has been hashed
-        using an hash function provided as input."""
-
-        try:
-            c = hash(
-                token,
-                possibleTokens,
-                encode=False,
-                multithreading=multithreading,
-                prefixes=self.prefixes,
-                suffixes=self.suffixes,
-            )
-            if isinstance(c, tuple):
-                return c, hash
-            else:
-                raise ValueError("The token has not been decoded but encoded")
-        except NotAHash as e:
-            if self.verbosity >= 2:
-                print(f"Exception with {hash.__name__} : {e}")
-            return (None, None, None), None
-
     def detectHash(
         self,
         hashes: dict[str, HashingType],
-        hashes_by_type: dict[str, HashingType],
         formats: list[FormatType],
-        formats_output: list[FormatType],
         timestamp: Decimal | int,
         token: str,
-        timestamp_type_func: Callable[[str], Decimal | int],
-        range_limit: int,
         multithreading: Optional[int] = None,
     ) -> Optional[
         tuple[tuple[str, Optional[str], Optional[str]], list[FormatType], bool]
     ]:
         """Determines which hash function matches the format of an input token."""
-
-        for h in hashes:
-            if h in hashes_by_type and (len(self.hashes) == 0 or h in self.hashes):
-                hash = hashes[h]
-                possibleTokens = GeneratorLen(
-                    self.generate_possible_token(
-                        timestamp_type_func(str(timestamp)),
-                        range_limit=range_limit,
-                        formats=formats_output,
-                    ),
-                    range_limit,
-                )
-                (new_token, prefix, suffix), format = self.detectOneHash(
-                    token, hash, possibleTokens, multithreading=multithreading
-                )
-                if new_token and format:
-                    if self.verbosity >= 1:
-                        print(f"Hash found! : {h}")
-                    new_formats: list[FormatType] = formats.copy()
-                    new_formats.append(format)
-                    if new_token[1] or new_token[2]:
-                        new_formats.append(
-                            partial(
-                                self.formatter.prefix_suffix,
-                                prefix=prefix,
-                            )
+        available_hashes = list(hashes.values())
+        (new_token, prefix, suffix, hash, timestamp_hash_format) = (
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        for timestamp_format_type in self.timestamp_format_types:
+            if self.verbosity >= 1:
+                print(f"Try with {timestamp_format_type.timestamp_type}")
+            possibleTokens = GeneratorLen(
+                self.generate_possible_token(
+                    timestamp_format_type.timestamp_type_func(str(timestamp)),
+                    range_limit=timestamp_format_type.range_limit,
+                ),
+                timestamp_format_type.range_limit,
+            )
+            timestamp_hash_formats = [
+                e
+                for e in self.timestamp_hash_formats
+                if e.timestamp_type == timestamp_format_type.timestamp_type
+            ]
+            try:
+                if multithreading and multithreading > 1:
+                    (new_token, prefix, suffix, hash, timestamp_hash_format) = (
+                        self.formatter.multithread_decrypt(
+                            token,
+                            possibleTokens,
+                            timestamp_hash_formats,
+                            available_hashes,
+                            self.prefixes,
+                            self.suffixes,
+                            self.timezone,
+                            self.date_format_of_token,
+                            self.alternative_tokens,
+                            nb_threads=multithreading,
+                            progress_active=self.progress_active,
                         )
-                        new_formats.append(
-                            partial(
-                                self.formatter.prefix_suffix,
-                                suffix=suffix,
-                            )
+                    )
+                else:
+                    (new_token, prefix, suffix, hash, timestamp_hash_format) = (
+                        self.formatter.native_decrypt(
+                            token,
+                            possibleTokens,
+                            self.timestamp_hash_formats,
+                            available_hashes,
+                            self.prefixes,
+                            self.suffixes,
+                            self.timezone,
+                            self.date_format_of_token,
+                            self.alternative_tokens,
+                            progress_active=self.progress_active,
                         )
-                    new_formats += formats_output
-                    return ((new_token, prefix, suffix), new_formats, True)
+                    )
+            except NotAHash as e:
+                if self.verbosity >= 2:
+                    print(f"Exception : {e}")
+            if new_token and hash:
+                new_formats: list[FormatType] = formats.copy()
+                new_formats.append(hash)
+                if new_token[1] or new_token[2]:
+                    new_formats.append(
+                        partial(
+                            self.formatter.prefix_suffix,
+                            prefix=prefix,
+                        )
+                    )
+                    new_formats.append(
+                        partial(
+                            self.formatter.prefix_suffix,
+                            suffix=suffix,
+                        )
+                    )
+                if timestamp_hash_format:
+                    new_formats += timestamp_hash_format.formats_output
+                return ((new_token, prefix, suffix), new_formats, True)
         return None
 
     def _detectFormat(
@@ -299,26 +318,15 @@ class ResetTolkien:
                         )
                     token = token.lower()
 
-                for timestampFormat in self.timestamp_hash_formats:
-                    if self.verbosity >= 1:
-                        print(
-                            f"Check hash with {timestampFormat.description} ({timestampFormat.range_limit} tokens)"
-                        )
-
-                    r = self.detectHash(
-                        hashes,
-                        timestampFormat.hashes_by_type,
-                        formats,
-                        timestampFormat.formats_output,
-                        timestamp,
-                        token,
-                        timestampFormat.timestamp_type_func,
-                        timestampFormat.range_limit,
-                        multithreading=multithreading,
-                    )
-                    if r:
-                        results.append(r)
-                        break
+                r = self.detectHash(
+                    hashes,
+                    formats,
+                    timestamp,
+                    token,
+                    multithreading=multithreading,
+                )
+                if r:
+                    results.append(r)
 
         return results
 
@@ -336,26 +344,23 @@ class ResetTolkien:
             return None
         return self._detectFormat(self.token, nb_threads, timestamp=timestamp)
 
-    def encode(self, value: str, formats: list[FormatType] | None = None) -> str:
+    def encode(
+        self,
+        value: str,
+        token: Optional[str] = None,
+        formats: list[FormatType] | None = None,
+    ) -> str:
         """Converts a value from an input list of format functions."""
 
         if formats == None:
             formats = self.formats
 
-        for format in formats[::-1]:
-            token = format(
-                value,
-                encode=True,
-                timezone=self.timezone,
-                date_format_of_token=self.date_format_of_token,
-                init_token=self.token,
-            )
-            if isinstance(token, str):
-                value = token
-            else:
-                raise ValueError("The token has not been encoded but decoded")
+        if token == None:
+            token = self.token
 
-        return value
+        return self.formatter.encode(
+            value, token, formats, self.timezone, self.date_format_of_token
+        )
 
     def generate_possible_token(
         self,
@@ -387,8 +392,14 @@ class ResetTolkien:
                 timestamp = f"{prefix}{timestamp}"
             if suffix:
                 timestamp = f"{timestamp}{suffix}"
-            encoded_timestamp = self.encode(timestamp, formats=formats)
-            yield encoded_timestamp, timestamp
+            if formats:
+                yield self.encode(timestamp, formats=formats), timestamp
+                for alternative_token in self.alternative_tokens:
+                    yield self.encode(
+                        timestamp, token=alternative_token, formats=formats
+                    ), timestamp
+            else:
+                yield timestamp, timestamp
 
     def generate_bounded_possible_token(
         self,

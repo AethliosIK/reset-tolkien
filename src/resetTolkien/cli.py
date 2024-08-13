@@ -84,6 +84,12 @@ parent_parser.add_argument(
     type=int,
     default=0,
 )
+parent_parser.add_argument(
+    "--progress",
+    help="Show a progress bar. (default: True)",
+    action="store_true",
+    default=True,
+)
 
 # MAIN
 
@@ -137,7 +143,13 @@ detect_parser.add_argument(
 detect_parser.add_argument(
     "--hashes",
     action=SplitArgs,
-    help="List of possible hashes to try to detect the format. Format: suffix1,suffix2 (default: all identified hash)",
+    help="List of possible hashes to try to detect the format. Format: hash1,hash2 (default: all identified hash)",
+    default=[],
+)
+detect_parser.add_argument(
+    "--alternative-tokens",
+    action=SplitArgs,
+    help="List of possible tokens to try to detect the format with different static data. Format: token1,token2",
     default=[],
 )
 
@@ -190,6 +202,12 @@ bruteforce_parser.add_argument(
     "--with-timestamp",
     help="Write the output with timestamp",
     action="store_true",
+)
+bruteforce_parser.add_argument(
+    "--alternative-tokens",
+    action=SplitArgs,
+    help="List of possible tokens to try to detect the format with different static data. Format: token1,token2",
+    default=[],
 )
 
 # SANDWICH
@@ -255,6 +273,12 @@ sandwich_parser.add_argument(
     help="Write the output with timestamp",
     action="store_true",
 )
+sandwich_parser.add_argument(
+    "--alternative-tokens",
+    action=SplitArgs,
+    help="List of possible tokens to try to detect the format with different static data. Format: token1,token2",
+    default=[],
+)
 
 
 def main():
@@ -306,6 +330,8 @@ def main():
             hashes=args.hashes,
             date_format_of_token=args.date_format_of_token,
             verbosity=args.verbosity,
+            progress_active=args.progress,
+            alternative_tokens=args.alternative_tokens,
         )
 
         results = tolkien.detectFormat(
@@ -360,10 +386,15 @@ def main():
             date_format_of_token=args.date_format_of_token,
             verbosity=args.verbosity,
             formats=args.token_format,
+            progress_active=args.progress,
+            alternative_tokens=args.alternative_tokens,
         )
 
         for token, value in tolkien.generate_possible_token(
-            args.timestamp, prefix=args.prefix, suffix=args.suffix
+            args.timestamp,
+            prefix=args.prefix,
+            suffix=args.suffix,
+            formats=tolkien.formats,
         ):
             output = f"{token}"
             if args.with_timestamp:
@@ -426,6 +457,8 @@ def main():
             date_format_of_token=args.date_format_of_token,
             verbosity=args.verbosity,
             formats=args.token_format,
+            progress_active=args.progress,
+            alternative_tokens=args.alternative_tokens,
         )
 
         for token, value in tolkien.generate_bounded_possible_token(
@@ -433,6 +466,7 @@ def main():
             args.end_timestamp,
             prefix=args.prefix,
             suffix=args.suffix,
+            formats=tolkien.formats,
         ):
             output = f"{token}"
             if args.with_timestamp:

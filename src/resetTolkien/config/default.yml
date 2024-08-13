@@ -35,10 +35,3 @@ float-datetime:
   timestamp_type: float
   formats:
     - datetime
-
-float-datetimeRFC2822:
-  description: "Float datetimeRFC2822"
-  level: 3
-  timestamp_type: float
-  formats:
-    - datetimeRFC2822

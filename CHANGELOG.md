@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2] - 2024-06-30
+## [1.3.0] - 2024-08-13
+
+### Added
+
+- #13: Optimization of the detection of hashed timestamps via multithreading.
+- #12: Progress bar for detection of hashed timestamps with `--progress` option.
+- #11 (suggested by @Aituglo): Custom MAC for UUID sandwich attack with `--alternative-tokens` option.
+
+## [1.2.0] - 2024-06-30
 
 ### Added
 

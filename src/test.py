@@ -15,19 +15,21 @@ from resetTolkien.constants import TIMESTAMP_STR_LENGTH, UUID_DECIMAL_LENGTH
 
 import sys
 
-getcontext().prec = TIMESTAMP_STR_LENGTH + UUID_DECIMAL_LENGTH
-
 verbosity = 0
 if len(sys.argv) == 3 and sys.argv[1] == "-v":
     verbosity = int(sys.argv[2])
 
 threads = 8
+DECIMAL_LENGTH = UUID_DECIMAL_LENGTH
 
-TIMEDELTA_WITH_FLOAT_VALUE = Decimal(1.1)
+getcontext().prec = TIMESTAMP_STR_LENGTH + DECIMAL_LENGTH
+
+TIMEDELTA_WITH_FLOAT_VALUE = Decimal(0.1)
 TIMEDELTA_WITH_INT_VALUE = 30
 
 OK = "\033[92mOK\033[0m"
 NOK = "\033[91mNOK\033[0m"
+PROGRESS_ACTIVE = True
 
 
 def benchmark_multithread() -> None:
@@ -108,12 +110,15 @@ def check(
         prefixes=prefixes,
         suffixes=suffixes,
         date_format_of_token=date_format_of_token,
+        decimal_length=DECIMAL_LENGTH,
+        progress_active=PROGRESS_ACTIVE,
     )
     start = time.time()
     results = tolkien.detectFormat(timestamp=timestamp_input, nb_threads=threads)
-    if not results:
-        raise Exception("No defined token")
     end = time.time()
+    if not results:
+        print(f"[{round(end - start, 3)}s] {description} : {NOK}")
+        raise Exception("No defined token")
     if verbosity >= 1:
         print(f"Partial results : {results}")
     success, possible_formats = _check(tolkien, value, init_token, results)
@@ -196,7 +201,19 @@ timestamp = getFloatTimestamp()
 token = uniqid(timestamp)
 check(timestamp, token, description="Float timestamp with uniqid")
 
-print("[+] Other checks")
+
+print("[+] Inmport/Export checks")
+
+timestamp = getIntTimestamp()
+u = uuid.uuid1()
+token = str(uuid1(u.node, u.clock_seq, Decimal(timestamp)))
+token2 = str(uuid1(u.node, u.clock_seq + 1, Decimal(timestamp)))
+tolkien = ResetTolkien(token=token, formats=["uuidv1"], alternative_tokens=[token2])
+tokens = list(
+    tolkien.generate_possible_token(timestamp, range_limit=1, formats=tolkien.formats)
+)
+success = token2 in token2
+print(f"Alternative tokens with uuidv1 : {(OK if success else NOK)}")
 
 timestamp = getIntTimestamp()
 token = base64.b64encode(
@@ -207,7 +224,9 @@ tolkien = ResetTolkien(token=token, formats=["base64", "sha1"])
 success = token == tolkien.encode(str(timestamp))
 print(f"Format importation : {(OK if success else NOK)}")
 
-tokens = list(tolkien.generate_possible_token(timestamp, range_limit=4))
+tokens = list(
+    tolkien.generate_possible_token(timestamp, range_limit=4, formats=tolkien.formats)
+)
 success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0][0] == token
 print(f"Possible token exportation : {(OK if success else NOK)}")
 
@@ -256,7 +275,7 @@ print("[+] Check datetime")
 
 date = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=-7)))
 timestamp = Decimal.from_float(date.timestamp())
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 token = date.strftime("%a, %d %b %Y %H:%M:%S %Z")
 check(
     timestamp,
@@ -267,9 +286,22 @@ check(
     timezone=-7,
 )
 
+date = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=-7)))
+timestamp = Decimal.from_float(date.timestamp())
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
+d = date.strftime("%a, %d %b %Y %H:%M:%S -0700")
+token = hashlib.sha1(str(d).encode()).hexdigest()
+check(
+    timestamp,
+    token,
+    description="Datetime RFC2822 with timezone and sha1",
+    timestamp_input=timestamp_input,
+    timezone=-7,
+)
+
 date = datetime.datetime.now(tz=datetime.timezone.utc)
 timestamp = Decimal.from_float(date.timestamp())
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 token = base64.b64encode(date.isoformat().encode()).decode()
 check(
     timestamp,
@@ -465,7 +497,7 @@ check(
 )
 
 timestamp = getFloatTimestamp()
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 value = "%s%s%s" % ("you", str(timestamp), "2")
 token = hashlib.md5(value.encode()).hexdigest()
 check(
@@ -479,7 +511,7 @@ check(
 
 date = datetime.datetime.now(tz=datetime.timezone.utc)
 timestamp = Decimal.from_float(date.timestamp())
-timestamp_input = timestamp - Decimal(1)
+timestamp_input = timestamp - TIMEDELTA_WITH_FLOAT_VALUE
 token = hashlib.md5(date.isoformat().encode()).hexdigest()
 check(
     timestamp,
