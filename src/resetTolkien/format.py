@@ -406,6 +406,7 @@ class Formatter:
         token: str,
         timezone: int,
         date_format_of_token: Optional[str],
+        alternative_tokens: list[str],
         values: tuple[str, str],
     ) -> tuple[
         Optional[str],
@@ -417,36 +418,38 @@ class Formatter:
         """Returns timestamp and encoded value if hashed value from various provided prefixes and suffixes"""
 
         timestamp, _ = values
+        alternative_tokens += token
         for timestamp_hash_format in timestamp_hash_formats:
-            encoded_timestamp = self.encode(
-                timestamp,
-                token,
-                timestamp_hash_format.formats_output,
-                timezone=timezone,
-                date_format_of_token=date_format_of_token,
-            )
-            for hash_func in hashes:
-                if token == hash_func(encoded_timestamp):
-                    return timestamp, None, None, hash_func, timestamp_hash_format
-                for prefix in prefixes:
-                    value = "%s%s" % (prefix, encoded_timestamp)
-                    if token == hash_func(value):
-                        return timestamp, prefix, None, hash_func, timestamp_hash_format
-                for suffix in suffixes:
-                    value = "%s%s" % (encoded_timestamp, suffix)
-                    if token == hash_func(value):
-                        return timestamp, None, suffix, hash_func, timestamp_hash_format
-                for prefix in prefixes:
-                    for suffix in suffixes:
-                        value = "%s%s%s" % (prefix, encoded_timestamp, suffix)
+            for alternative_token in alternative_tokens:
+                encoded_timestamp = self.encode(
+                    timestamp,
+                    alternative_token,
+                    timestamp_hash_format.formats_output,
+                    timezone=timezone,
+                    date_format_of_token=date_format_of_token,
+                )
+                for hash_func in hashes:
+                    if token == hash_func(encoded_timestamp):
+                        return timestamp, None, None, hash_func, timestamp_hash_format
+                    for prefix in prefixes:
+                        value = "%s%s" % (prefix, encoded_timestamp)
                         if token == hash_func(value):
-                            return (
-                                timestamp,
-                                prefix,
-                                suffix,
-                                hash_func,
-                                timestamp_hash_format,
-                            )
+                            return timestamp, prefix, None, hash_func, timestamp_hash_format
+                    for suffix in suffixes:
+                        value = "%s%s" % (encoded_timestamp, suffix)
+                        if token == hash_func(value):
+                            return timestamp, None, suffix, hash_func, timestamp_hash_format
+                    for prefix in prefixes:
+                        for suffix in suffixes:
+                            value = "%s%s%s" % (prefix, encoded_timestamp, suffix)
+                            if token == hash_func(value):
+                                return (
+                                    timestamp,
+                                    prefix,
+                                    suffix,
+                                    hash_func,
+                                    timestamp_hash_format,
+                                )
         return None, None, None, None, None
 
     def multithread_decrypt(
@@ -459,6 +462,7 @@ class Formatter:
         suffixes: list[str],
         timezone: int,
         date_format_of_token: Optional[str],
+        alternative_tokens: list[str],
         nb_threads: int = DEFAULT_THREAD_NUMBER,
         progress_active: bool = False,
     ) -> tuple[
@@ -493,6 +497,7 @@ class Formatter:
                         token,
                         timezone,
                         date_format_of_token,
+                        alternative_tokens,
                     ),
                     possibleTokens,
                     chunksize=chunksize,
@@ -513,6 +518,7 @@ class Formatter:
         suffixes: list[str],
         timezone: int,
         date_format_of_token: Optional[str],
+        alternative_tokens: list[str],
         progress_active: bool = False,
     ) -> tuple[
         Optional[str],
@@ -534,6 +540,7 @@ class Formatter:
                         token,
                         timezone,
                         date_format_of_token,
+                        alternative_tokens,
                         values,
                     )
                 )

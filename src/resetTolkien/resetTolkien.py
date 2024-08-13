@@ -44,6 +44,7 @@ class ResetTolkien:
         prefixes: Optional[list[str]] = None,
         suffixes: Optional[list[str]] = None,
         hashes: Optional[list[str]] = None,
+        alternative_tokens: Optional[list[str]] = None,
         timezone: int = 0,
         date_format_of_token: Optional[str] = None,
         formats: Optional[list[str]] = None,
@@ -75,6 +76,9 @@ class ResetTolkien:
                 if not h in self.formatter.allHashing():
                     raise ValueError(f"Unknown hash : {h}")
             self.hashes = hashes.copy()
+        self.alternative_tokens: list[str] = (
+            [] if not alternative_tokens else alternative_tokens.copy()
+        )
         self.timezone = timezone
         self.date_format_of_token = date_format_of_token
         self.formats = []
@@ -178,6 +182,7 @@ class ResetTolkien:
                             self.suffixes,
                             self.timezone,
                             self.date_format_of_token,
+                            self.alternative_tokens,
                             nb_threads=multithreading,
                             progress_active=self.progress_active,
                         )
@@ -193,6 +198,7 @@ class ResetTolkien:
                             self.suffixes,
                             self.timezone,
                             self.date_format_of_token,
+                            self.alternative_tokens,
                             progress_active=self.progress_active,
                         )
                     )
@@ -338,14 +344,22 @@ class ResetTolkien:
             return None
         return self._detectFormat(self.token, nb_threads, timestamp=timestamp)
 
-    def encode(self, value: str, formats: list[FormatType] | None = None) -> str:
+    def encode(
+        self,
+        value: str,
+        token: Optional[str] = None,
+        formats: list[FormatType] | None = None,
+    ) -> str:
         """Converts a value from an input list of format functions."""
 
         if formats == None:
             formats = self.formats
 
+        if token == None:
+            token = self.token
+
         return self.formatter.encode(
-            value, self.token, formats, self.timezone, self.date_format_of_token
+            value, token, formats, self.timezone, self.date_format_of_token
         )
 
     def generate_possible_token(
@@ -380,6 +394,10 @@ class ResetTolkien:
                 timestamp = f"{timestamp}{suffix}"
             if formats:
                 yield self.encode(timestamp, formats=formats), timestamp
+                for alternative_token in self.alternative_tokens:
+                    yield self.encode(
+                        timestamp, token=alternative_token, formats=formats
+                    ), timestamp
             else:
                 yield timestamp, timestamp
 

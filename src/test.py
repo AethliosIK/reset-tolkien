@@ -31,6 +31,7 @@ OK = "\033[92mOK\033[0m"
 NOK = "\033[91mNOK\033[0m"
 PROGRESS_ACTIVE = True
 
+
 def benchmark_multithread() -> None:
     timestamp_input = getFloatTimestamp()
     token = hashlib.md5("value".encode()).hexdigest()
@@ -110,7 +111,7 @@ def check(
         suffixes=suffixes,
         date_format_of_token=date_format_of_token,
         decimal_length=DECIMAL_LENGTH,
-        progress_active=PROGRESS_ACTIVE
+        progress_active=PROGRESS_ACTIVE,
     )
     start = time.time()
     results = tolkien.detectFormat(timestamp=timestamp_input, nb_threads=threads)
@@ -200,7 +201,19 @@ timestamp = getFloatTimestamp()
 token = uniqid(timestamp)
 check(timestamp, token, description="Float timestamp with uniqid")
 
-print("[+] Other checks")
+
+print("[+] Inmport/Export checks")
+
+timestamp = getIntTimestamp()
+u = uuid.uuid1()
+token = str(uuid1(u.node, u.clock_seq, Decimal(timestamp)))
+token2 = str(uuid1(u.node, u.clock_seq + 1, Decimal(timestamp)))
+tolkien = ResetTolkien(token=token, formats=["uuidv1"], alternative_tokens=[token2])
+tokens = list(
+    tolkien.generate_possible_token(timestamp, range_limit=1, formats=tolkien.formats)
+)
+success = token2 in token2
+print(f"Alternative tokens with uuidv1 : {(OK if success else NOK)}")
 
 timestamp = getIntTimestamp()
 token = base64.b64encode(
@@ -211,7 +224,9 @@ tolkien = ResetTolkien(token=token, formats=["base64", "sha1"])
 success = token == tolkien.encode(str(timestamp))
 print(f"Format importation : {(OK if success else NOK)}")
 
-tokens = list(tolkien.generate_possible_token(timestamp, range_limit=4, formats=tolkien.formats))
+tokens = list(
+    tolkien.generate_possible_token(timestamp, range_limit=4, formats=tolkien.formats)
+)
 success = len(tokens) == 4 and len(set(tokens)) == len(tokens) and tokens[0][0] == token
 print(f"Possible token exportation : {(OK if success else NOK)}")
 
