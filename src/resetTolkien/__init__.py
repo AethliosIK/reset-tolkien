@@ -1,7 +1,7 @@
 # __init__.py
 
-__version__ = version = "1.3.2"
-__version_tuple__ = version_tuple = (1, 3, 2)
+__version__ = version = "1.3.3"
+__version_tuple__ = version_tuple = (1, 3, 3)
 __copyright__ = "Copyright (c) 2024 Tom CHAMBARETAUD"
 
 from resetTolkien.cli import main
