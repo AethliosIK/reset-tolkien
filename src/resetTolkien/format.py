@@ -125,7 +125,7 @@ class Formatter:
                 else:
                     n = int(number)
                 try:
-                    from_microsecond_timestamp(n)
+                    from_microsecond_timestamp(n, verify=True)
                 except ValueError:
                     continue
                 matches.append(n)
