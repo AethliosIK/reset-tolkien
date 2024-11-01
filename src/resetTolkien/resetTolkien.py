@@ -202,7 +202,7 @@ class ResetTolkien:
                             progress_active=self.progress_active,
                         )
                     )
-            except (NotAHash, ValueError) as e:
+            except NotAHash as e:
                 if self.verbosity >= 2:
                     print(f"Exception : {e}")
             if new_token and hash:

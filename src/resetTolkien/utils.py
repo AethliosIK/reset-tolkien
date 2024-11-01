@@ -279,7 +279,10 @@ def urldecode(value: str) -> str:
 
 
 def from_microsecond_timestamp(
-    token: Decimal | int, timezone: int = 0, date_format_of_token: str | None = None
+    token: Decimal | int,
+    timezone: int = 0,
+    date_format_of_token: str | None = None,
+    verify: bool = False,
 ) -> str:
     """Converts a timestamp to a standard string of datetime or formated by date_format_of_token"""
 
@@ -291,8 +294,10 @@ def from_microsecond_timestamp(
         + timezone_delta
     )
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=timezone)))
-    if d < now - datetime.timedelta(days=NB_DAYS_LIMIT) or d > now + datetime.timedelta(
-        days=NB_DAYS_LIMIT
+    if (
+        verify
+        and d < now - datetime.timedelta(days=NB_DAYS_LIMIT)
+        or d > now + datetime.timedelta(days=NB_DAYS_LIMIT)
     ):
         raise ValueError("Not a timestamp")
     if date_format_of_token:
