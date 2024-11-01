@@ -8,6 +8,7 @@ import datetime
 import argparse
 import ast
 
+from threading import Lock
 from yaml import safe_load
 from typing import Generator, Callable, Any, Optional, TypeAlias, Protocol
 from typing_extensions import Self
@@ -377,7 +378,32 @@ def import_format_with_args(
 # TimestampHashFormat
 
 
-class TimestampHashFormat:
+class SingletonMeta(type):
+    """
+    This is a thread-safe implementation of Singleton.
+    """
+
+    _instances = {}
+    _lock: Lock = Lock()
+    """
+    We now have a lock object that will be used to synchronize threads during
+    first access to the Singleton.
+    """
+
+    def __call__(cls, *args, **kwargs):
+        """
+        Possible changes to the value of the `__init__` argument do not affect
+        the returned instance.
+        """
+
+        with cls._lock:
+            if cls not in cls._instances:
+                instance = super().__call__(*args, **kwargs)
+                cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class TimestampHashFormat(metaclass=SingletonMeta):
     """Class used to define the timestamp format parameters
     provided to decrypt a hash."""
 
