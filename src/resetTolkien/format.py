@@ -418,7 +418,8 @@ class Formatter:
         """Returns timestamp and encoded value if hashed value from various provided prefixes and suffixes"""
 
         timestamp, _ = values
-        alternative_tokens += token
+        if token not in alternative_tokens:
+            alternative_tokens.append(token)
         for timestamp_hash_format in timestamp_hash_formats:
             for alternative_token in alternative_tokens:
                 encoded_timestamp = self.encode(
