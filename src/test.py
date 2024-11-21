@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Author: Aethlios <tom.chambaretaud@protonmail.com>
+# Author: Aethlios <contact@aeth.cc>
 
 import datetime
 import base64

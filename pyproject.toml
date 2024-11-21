@@ -10,10 +10,10 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Tom CHAMBARETAUD", email = "tom.chambaretaud@protonmail.com"},
+    {name = "Tom CHAMBARETAUD", email = "contact@aeth.cc"},
 ]
 maintainers = [
-    {name = "Tom CHAMBARETAUD", email = "tom.chambaretaud@protonmail.com"},
+    {name = "Tom CHAMBARETAUD", email = "contact@aeth.cc"},
 ]
 keywords = ["security", "secret", "reset", "token", "tolkien"]
 classifiers = [
