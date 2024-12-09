@@ -48,6 +48,7 @@ dependencies = [
     "six == 1.16.0",
     "typing_extensions == 4.10.0",
     "tzlocal == 5.2",
+    "tqdm ==4.66.5",
 ]
 
 [project.urls]
